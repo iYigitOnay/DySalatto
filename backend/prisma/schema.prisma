@@ -1,13 +1,221 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- ENUMS ---
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum ProductStatus {
+  ACTIVE
+  OUT_OF_STOCK
+  HIDDEN
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentType {
+  ONLINE
+  CASH_AT_DOOR
+  CARD_AT_DOOR
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// --- IDENTITY MODELS ---
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  name          String
+  phone         String?
+  role          UserRole  @default(USER)
+  
+  refreshToken  String?
+  lastLogin     DateTime?
+  isActive      Boolean   @default(true)
+
+  addresses     Address[]
+  orders        Order[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Address {
+  id            String   @id @default(uuid())
+  title         String   
+  city          String
+  district      String
+  neighborhood  String
+  street        String
+  buildingNo    String
+  floor         String?
+  apartmentNo   String?
+  directions    String?  
+
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders        Order[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// --- PRODUCT MODELS ---
+
+model Category {
+  id                  String               @id @default(uuid())
+  name                String               @unique
+  slug                String               @unique
+  products            Product[]
+  ingredientCategories IngredientCategory[]
+  
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+}
+
+model Product {
+  id             String        @id @default(uuid())
+  name           String
+  description    String?
+  price          Decimal       @db.Decimal(10, 2)
+  image          String?
+  isCustomizable Boolean       @default(false)
+  status         ProductStatus @default(ACTIVE)
+
+  categoryId     String
+  category       Category      @relation(fields: [categoryId], references: [id])
+  orderItems     OrderItem[]
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model IngredientCategory {
+  id          String       @id @default(uuid())
+  name        String
+  minSelect   Int          @default(0)
+  maxSelect   Int?         
+  
+  categoryId  String
+  category    Category     @relation(fields: [categoryId], references: [id])
+  
+  ingredients Ingredient[]
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Ingredient {
+  id                   String             @id @default(uuid())
+  name                 String
+  extraPrice           Decimal            @default(0) @db.Decimal(10, 2)
+  stockStatus          Boolean            @default(true)
+  
+  ingredientCategoryId String
+  ingredientCategory   IngredientCategory @relation(fields: [ingredientCategoryId], references: [id])
+  orderIngredients     OrderIngredient[]
+
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+}
+
+// --- ORDER & FINANCE MODELS ---
+
+model Order {
+  id            String        @id @default(uuid())
+  orderNumber   Int           @unique @default(autoincrement())
+  
+  totalAmount   Decimal       @db.Decimal(10, 2)
+  status        OrderStatus   @default(PENDING)
+  
+  paymentType   PaymentType
+  paymentStatus PaymentStatus @default(PENDING)
+
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  
+  addressId     String
+  address       Address       @relation(fields: [addressId], references: [id])
+
+  items         OrderItem[]
+  transactions  Transaction[]
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model OrderItem {
+  id            String            @id @default(uuid())
+  quantity      Int               @default(1)
+  priceAtTime   Decimal           @db.Decimal(10, 2) // Price when ordered
+
+  orderId       String
+  order         Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  productId     String
+  product       Product           @relation(fields: [productId], references: [id])
+
+  selectedIngredients OrderIngredient[]
+}
+
+model OrderIngredient {
+  id            String      @id @default(uuid())
+  priceAtTime   Decimal     @db.Decimal(10, 2)
+
+  orderItemId   String
+  orderItem     OrderItem   @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  
+  ingredientId  String
+  ingredient    Ingredient  @relation(fields: [ingredientId], references: [id])
+}
+
+model Transaction {
+  id            String        @id @default(uuid())
+  amount        Decimal       @db.Decimal(10, 2)
+  provider      String        // e.g., "iyzico", "stripe", "cash"
+  externalId    String?       // Transaction ID from payment provider
+  status        PaymentStatus
+
+  orderId       String
+  order         Order         @relation(fields: [orderId], references: [id])
+
+  createdAt     DateTime      @default(now())
+}
+
+// --- OPERATIONS MODELS ---
+
+model OperationCalendar {
+  id            String    @id @default(uuid())
+  title         String    // e.g., "Tedarik Günü", "Mutfak Temizlik"
+  date          DateTime
+  type          String    // e.g., "SUPPLY", "MAINTENANCE", "HOLIDAY"
+  note          String?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
