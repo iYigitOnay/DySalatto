@@ -119,6 +119,38 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
   }
 };
 
+export const me = async (req: any, res: Response): Promise<void> => {
+  try {
+    const user = req.user; // Set by protect middleware
+    if (!user) {
+      res.status(401).json({ success: false, message: "Kullanıcı bulunamadı." });
+      return;
+    }
+    
+    // We can fetch more details if needed, but req.user from protect middleware
+    // already has { id, role, email, isActive }. Let's fetch full details excluding password.
+    const fullUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        phone: true
+      }
+    });
+
+    if (!fullUser) {
+      res.status(404).json({ success: false, message: "Kullanıcı bulunamadı." });
+      return;
+    }
+
+    res.status(200).json({ success: true, data: fullUser });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Sunucu hatası." });
+  }
+};
+
 export const logout = async (req: Request, res: Response): Promise<void> => {
   try {
     const refreshToken = req.cookies?.refreshToken;
