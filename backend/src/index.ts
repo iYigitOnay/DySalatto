@@ -1,38 +1,32 @@
-import express, { Express, Request, Response, NextFunction } from "express";
+import express, { Express, Request, Response } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
+
+import authRoutes from "./routes/auth.routes";
 
 dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT || 3001;
 
-// --- MIDDLEWARE ---
-app.use(express.json());
-app.use(cookieParser());
+// Middleware
 app.use(cors({
-  origin: "http://localhost:3000", // Frontend port
+  origin: "http://localhost:3000", // Next.js port
   credentials: true
 }));
+app.use(express.json());
+app.use(cookieParser());
 
-// --- ROUTES ---
+// Routes
 app.use("/api/auth", authRoutes);
 
-// --- HEALTH CHECK ---
-app.get("/health", (req: Request, res: Response) => {
-  res.status(200).json({ status: "ok", message: "DySalatto Backend is live" });
+// Health Check
+app.get("/api/health", (req: Request, res: Response) => {
+  res.status(200).json({ status: "ok", message: "DySalatto API is running" });
 });
 
-// --- GLOBAL ERROR HANDLER ---
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({
-    success: false,
-    message: err.message || "Internal Server Error",
-  });
-});
-
+// Start Server
 app.listen(port, () => {
-  console.log(`[server]: Artisan Server is running at http://localhost:${port}`);
+  console.log(`[server]: Server is running at http://localhost:${port}`);
 });

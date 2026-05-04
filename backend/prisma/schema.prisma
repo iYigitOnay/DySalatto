@@ -12,6 +12,11 @@ datasource db {
 
 // --- ENUMS ---
 
+enum Brand {
+  DYSALATTO
+  DYCAKE
+}
+
 enum UserRole {
   ADMIN
   USER
@@ -47,175 +52,264 @@ enum PaymentStatus {
 // --- IDENTITY MODELS ---
 
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  password      String
-  name          String
-  phone         String?
-  role          UserRole  @default(USER)
-  
-  refreshToken  String?
-  lastLogin     DateTime?
-  isActive      Boolean   @default(true)
+  id       String   @id @default(uuid())
+  email    String   @unique
+  password String
+  name     String
+  phone    String?
+  role     UserRole @default(USER)
 
-  addresses     Address[]
-  orders        Order[]
+  refreshToken String?
+  lastLogin    DateTime?
+  isActive     Boolean   @default(true)
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  addresses Address[]
+  orders    Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Address {
-  id            String   @id @default(uuid())
-  title         String   
-  city          String
-  district      String
-  neighborhood  String
-  street        String
-  buildingNo    String
-  floor         String?
-  apartmentNo   String?
-  directions    String?  
+  id           String  @id @default(uuid())
+  title        String
+  city         String
+  district     String
+  neighborhood String
+  street       String
+  buildingNo   String
+  floor        String?
+  apartmentNo  String?
+  directions   String?
 
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orders        Order[]
+  userId String
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[]
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-// --- PRODUCT MODELS ---
+// --- CATEGORY & TRAIT (FILTER) MODELS ---
 
 model Category {
-  id                  String               @id @default(uuid())
-  name                String               @unique
-  slug                String               @unique
-  products            Product[]
-  ingredientCategories IngredientCategory[]
-  
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  id    String @id @default(uuid())
+  brand Brand
+  name  String
+  slug  String
+
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([brand, slug])
 }
+
+model TraitGroup {
+  id    String @id @default(uuid())
+  brand Brand
+  name  String // e.g., "Beslenme Tercihi", "İçerik Hassasiyeti"
+
+  traits Trait[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Trait {
+  id   String @id @default(uuid())
+  name String // e.g., "Vegan", "Glutensiz"
+
+  traitGroupId String
+  traitGroup   TraitGroup @relation(fields: [traitGroupId], references: [id], onDelete: Cascade)
+
+  products ProductTrait[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// --- PRODUCT & INGREDIENT MODELS ---
 
 model Product {
-  id             String        @id @default(uuid())
-  name           String
-  description    String?
-  price          Decimal       @db.Decimal(10, 2)
-  image          String?
-  isCustomizable Boolean       @default(false)
-  status         ProductStatus @default(ACTIVE)
+  id          String        @id @default(uuid())
+  brand       Brand
+  name        String
+  description String?
+  price       Decimal       @db.Decimal(10, 2)
+  image       String?
+  status      ProductStatus @default(ACTIVE)
 
-  categoryId     String
-  category       Category      @relation(fields: [categoryId], references: [id])
-  orderItems     OrderItem[]
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
 
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  traits      ProductTrait[]
+  ingredients ProductIngredient[] // Reçete (standart ürünün içindekiler listesi)
+
+  orderItems OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-model IngredientCategory {
-  id          String       @id @default(uuid())
-  name        String
-  minSelect   Int          @default(0)
-  maxSelect   Int?         
-  
-  categoryId  String
-  category    Category     @relation(fields: [categoryId], references: [id])
-  
-  ingredients Ingredient[]
+model ProductTrait {
+  productId String
+  traitId   String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  trait     Trait   @relation(fields: [traitId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  @@id([productId, traitId])
 }
 
 model Ingredient {
-  id                   String             @id @default(uuid())
-  name                 String
-  extraPrice           Decimal            @default(0) @db.Decimal(10, 2)
-  stockStatus          Boolean            @default(true)
-  
-  ingredientCategoryId String
-  ingredientCategory   IngredientCategory @relation(fields: [ingredientCategoryId], references: [id])
-  orderIngredients     OrderIngredient[]
+  id      String  @id @default(uuid())
+  brand   Brand
+  name    String
+  price   Decimal @default(0) @db.Decimal(10, 2)
+  isStock Boolean @default(true)
 
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
+  // Standart ürünlerin reçetesinde kullanılma
+  products ProductIngredient[]
+
+  // DIY Adımlarında kullanılma
+  steps StepIngredient[]
+
+  // Siparişlerdeki custom/ekstra seçimler
+  orderItems OrderItemIngredient[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProductIngredient {
+  productId    String
+  ingredientId String
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@id([productId, ingredientId])
+}
+
+// --- DIY (KENDİ TASARIMINI YARAT) MODELS ---
+
+model IngredientStep {
+  id         String  @id @default(uuid())
+  brand      Brand
+  name       String // "1. Taban Seç", "2. Kas İster Misin?"
+  orderIndex Int     @default(0)
+  isRequired Boolean @default(false)
+  minSelect  Int     @default(0)
+  maxSelect  Int     @default(1)
+
+  ingredients StepIngredient[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model StepIngredient {
+  stepId       String
+  ingredientId String
+  step         IngredientStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  ingredient   Ingredient     @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@id([stepId, ingredientId])
 }
 
 // --- ORDER & FINANCE MODELS ---
 
 model Order {
-  id            String        @id @default(uuid())
-  orderNumber   Int           @unique @default(autoincrement())
-  
-  totalAmount   Decimal       @db.Decimal(10, 2)
-  status        OrderStatus   @default(PENDING)
-  
+  id          String @id @default(uuid())
+  orderNumber Int    @unique @default(autoincrement())
+
+  totalAmount Decimal     @db.Decimal(10, 2)
+  status      OrderStatus @default(PENDING) // Genel sipariş durumu
+
   paymentType   PaymentType
   paymentStatus PaymentStatus @default(PENDING)
 
-  userId        String
-  user          User          @relation(fields: [userId], references: [id])
-  
-  addressId     String
-  address       Address       @relation(fields: [addressId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  items         OrderItem[]
-  transactions  Transaction[]
+  addressId String
+  address   Address @relation(fields: [addressId], references: [id])
 
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  subOrders    SubOrder[]
+  transactions Transaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SubOrder {
+  id          String      @id @default(uuid())
+  brand       Brand
+  status      OrderStatus @default(PENDING) // Marka bazlı (mutfak) sipariş durumu
+  totalAmount Decimal     @db.Decimal(10, 2)
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  items OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model OrderItem {
-  id            String            @id @default(uuid())
-  quantity      Int               @default(1)
-  priceAtTime   Decimal           @db.Decimal(10, 2) // Price when ordered
+  id          String  @id @default(uuid())
+  quantity    Int     @default(1)
+  priceAtTime Decimal @db.Decimal(10, 2) // Sipariş anındaki ürün/DIY fiyatı
 
-  orderId       String
-  order         Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  
-  productId     String
-  product       Product           @relation(fields: [productId], references: [id])
+  subOrderId String
+  subOrder   SubOrder @relation(fields: [subOrderId], references: [id], onDelete: Cascade)
 
-  selectedIngredients OrderIngredient[]
+  // Ürün hazır menü mü (Product) yoksa kendi oluşturduğu bir ürün mü (DIY)?
+  isCustom Boolean @default(false)
+
+  // Eğer isCustom == false ise dolu olur:
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id])
+
+  // Hem Custom ürünün malzemeleri hem de hazır ürüne eklenen ekstra malzemeler:
+  selectedIngredients OrderItemIngredient[]
 }
 
-model OrderIngredient {
-  id            String      @id @default(uuid())
-  priceAtTime   Decimal     @db.Decimal(10, 2)
+model OrderItemIngredient {
+  id          String  @id @default(uuid())
+  priceAtTime Decimal @db.Decimal(10, 2) // Sipariş anındaki malzeme fiyatı
+  quantity    Int     @default(1)
 
-  orderItemId   String
-  orderItem     OrderItem   @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
-  
-  ingredientId  String
-  ingredient    Ingredient  @relation(fields: [ingredientId], references: [id])
+  orderItemId String
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
 }
 
 model Transaction {
-  id            String        @id @default(uuid())
-  amount        Decimal       @db.Decimal(10, 2)
-  provider      String        // e.g., "iyzico", "stripe", "cash"
-  externalId    String?       // Transaction ID from payment provider
-  status        PaymentStatus
+  id         String        @id @default(uuid())
+  amount     Decimal       @db.Decimal(10, 2)
+  provider   String // e.g., "iyzico", "stripe", "cash"
+  externalId String? // Transaction ID from payment provider
+  status     PaymentStatus
 
-  orderId       String
-  order         Order         @relation(fields: [orderId], references: [id])
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  createdAt     DateTime      @default(now())
+  createdAt DateTime @default(now())
 }
 
 // --- OPERATIONS MODELS ---
 
 model OperationCalendar {
-  id            String    @id @default(uuid())
-  title         String    // e.g., "Tedarik Günü", "Mutfak Temizlik"
-  date          DateTime
-  type          String    // e.g., "SUPPLY", "MAINTENANCE", "HOLIDAY"
-  note          String?
+  id    String   @id @default(uuid())
+  title String // e.g., "Tedarik Günü", "Mutfak Temizlik"
+  date  DateTime
+  type  String // e.g., "SUPPLY", "MAINTENANCE", "HOLIDAY"
+  note  String?
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
