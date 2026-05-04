@@ -53,3 +53,24 @@ Standart bir menü ürünü (Örn: "Tavuklu Kinoa Bowl" veya "Orman Meyveli Raw 
 2. **Kategori Seçimi:** Sisteme eklenmiş Ana Kategorilerden biri seçilir.
 3. **Etiket/Filtre Eşleştirme:** "Vegan", "Glutensiz" vb. etiketler seçilir.
 4. **İçindekiler (Reçete) Eşleştirme:** Admin, "Malzeme Havuzu"nda var olan malzemeleri (Örn: Kinoa, Izgara Tavuk, Siyah Susam) ürüne bağlar. Sistemde o an olmayan bir malzeme aratıldığında, sayfadan ayrılmadan "Yeni Ekle" butonuna basılarak o malzeme anında veritabanına eklenir. (Bu sayede müşteri ekranında şeffaf bir içerik listesi gösterilir).
+
+---
+
+## 6. Geliştirme Yol Haritası (Execution Roadmap)
+Sistemin mock verilerden tamamen kurtulup dinamik hale gelmesi için aşağıdaki sıra izlenecektir. Her bir modül hem Backend (API) hem de Frontend (UI) olarak uçtan uca tamamlanıp bir sonrakine geçilecektir.
+
+**Faz 1: Temel Veri Yönetimi (Altyapı)**
+1. **Ana Kategoriler (Categories):** Menü başlıklarının (Kaseler, Pastalar) oluşturulması.
+2. **Özellik Grupları ve Etiketler (Traits):** Filtrelerin (Diyet Tipi -> Vegan) oluşturulması.
+
+**Faz 2: Malzeme ve DIY (Kendi Ürününü Yarat) Modülü**
+1. **Malzeme Havuzu (Ingredients):** Sisteme fiyat ve stok bilgisiyle baz malzemelerin eklenmesi (Örn: Kinoa, Çilek).
+2. **Oluşturma Adımları (DIY Steps):** Müşteri özel sipariş verirken göreceği "1. Taban Seç", "2. Ekstra Seç" başlıklarının yaratılması ve malzemelerin bu başlıklara bağlanması.
+
+**Faz 3: Hazır Menü (Products) Yönetimi**
+1. **Ürün CRUD İşlemleri:** Faz 1 ve Faz 2'deki verileri kullanarak (Kategori seçimi, Etiket atama, Malzeme/Reçete ekleme) gerçek menü ürünlerinin oluşturulması.
+
+**Faz 4: Sipariş ve Finans (Orders & Finance)**
+1. **Sepet ve Ödeme Akışı (Checkout):** Hazır ve DIY ürünlerin sepete eklenip "Order" ve "SubOrder" olarak bölünmesi.
+2. **Sipariş Paneli:** Admin tarafına düşen siparişlerin mutfak (hazırlanıyor/teslim edildi) durumlarının yönetilmesi.
+3. **Finans:** Marka bazlı gelir tablosu.

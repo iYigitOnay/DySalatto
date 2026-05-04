@@ -4,6 +4,8 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 
 import authRoutes from "./routes/auth.routes";
+import categoryRoutes from "./routes/category.routes";
+import traitRoutes from "./routes/trait.routes";
 
 dotenv.config();
 
@@ -20,6 +22,8 @@ app.use(cookieParser());
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/traits", traitRoutes);
 
 // Health Check
 app.get("/api/health", (req: Request, res: Response) => {
