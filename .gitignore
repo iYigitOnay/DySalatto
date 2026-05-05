@@ -42,4 +42,10 @@ frontend/node_modules/
 backend/dist/
 frontend/dist/
 uploads/
-frontend/public/
+backend/uploads/
+frontend/public/uploads/
+.env
+backend/.env
+frontend/.env
+frontend/.env.local
+
