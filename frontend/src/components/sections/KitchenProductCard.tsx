@@ -5,11 +5,10 @@ import { motion } from 'framer-motion';
 import { Plus, Leaf, ShieldAlert } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Product, MOCK_INGREDIENTS } from '@/lib/mockData';
 
 interface KitchenProductCardProps {
-  product: Product;
-  onAddToCart: (product: Product) => void;
+  product: any;
+  onAddToCart: (product: any) => void;
 }
 
 const DynamicIcon = ({ iconName, className }: { iconName?: string, className?: string }) => {
@@ -19,11 +18,17 @@ const DynamicIcon = ({ iconName, className }: { iconName?: string, className?: s
 };
 
 export default function KitchenProductCard({ product, onAddToCart }: KitchenProductCardProps) {
-  const isCake = product.brand === 'cake';
+  // Brand mapping and safety checks
+  const brand = product.brand?.toLowerCase() || '';
+  const isCake = brand === 'cake' || brand === 'dycake';
   const accentColor = isCake ? 'bg-brand-sand text-[#110C08]' : 'bg-brand-terracotta text-white';
   const accentHover = isCake ? 'hover:bg-white' : 'hover:bg-brand-terracotta-dark';
 
-  const productIngredients = MOCK_INGREDIENTS.filter(ing => product.ingredients.includes(ing.id));
+  // Backend data mapping
+  const productIngredients = product.ingredients?.map((pi: any) => pi.ingredient) || [];
+  const productTraits = product.traits?.map((pt: any) => pt.trait?.name).filter(Boolean) || [];
+  const categoryName = product.category?.name || 'Genel';
+  const price = Number(product.price || 0).toLocaleString('tr-TR');
 
   return (
     <motion.div 
@@ -36,7 +41,7 @@ export default function KitchenProductCard({ product, onAddToCart }: KitchenProd
       {/* Product Image */}
       <div className="relative h-64 w-full overflow-hidden">
         <img 
-          src={product.image} 
+          src={product.image || '/images/logo.png'} 
           alt={product.name} 
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
         />
@@ -44,12 +49,12 @@ export default function KitchenProductCard({ product, onAddToCart }: KitchenProd
         
         {/* Category Tag */}
         <div className="absolute top-6 left-6 px-4 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/60">
-          {product.category}
+          {categoryName}
         </div>
 
         {/* Dietary Icons */}
         <div className="absolute top-6 right-6 flex gap-2">
-            {product.dietaryTags.includes('Vegan') && (
+            {productTraits.includes('Vegan') && (
                 <div className="w-8 h-8 rounded-full bg-green-500/20 backdrop-blur-md border border-green-500/30 flex items-center justify-center text-green-500" title="Vegan">
                     <Leaf className="w-4 h-4" />
                 </div>
@@ -68,26 +73,18 @@ export default function KitchenProductCard({ product, onAddToCart }: KitchenProd
 
         {/* Ingredients Summary */}
         <div className="mt-4 mb-8 flex flex-wrap gap-2">
-            {productIngredients.map(ing => (
+            {productIngredients.map((ing: any) => (
                 <span key={ing.id} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/5 border border-white/5 text-[10px] font-bold text-white/40" title={ing.name}>
-                    <DynamicIcon iconName={ing.iconName} className="w-3 h-3" />
+                    <DynamicIcon iconName={ing.iconName || 'Wheat'} className="w-3 h-3" />
                     {ing.name}
                 </span>
             ))}
         </div>
 
-        {/* Allergens Warning */}
-        {product.allergens.length > 0 && (
-            <div className="mt-auto mb-6 flex items-center gap-2 text-red-400/60 text-[9px] font-black uppercase tracking-widest">
-                <ShieldAlert className="w-3 h-3" />
-                Alerjen: {product.allergens.join(', ')}
-            </div>
-        )}
-
         {/* Action Area */}
         <div className="mt-auto flex items-center justify-between gap-4">
           <div className="text-xl font-black text-white tracking-tighter">
-            {product.price}
+            {price} TL
           </div>
           <button 
             onClick={() => onAddToCart(product)}

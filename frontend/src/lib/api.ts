@@ -61,6 +61,6 @@ export const traitsApi = {
     const params = new URLSearchParams();
     const mappedBrand = mapBrand(brand);
     if (mappedBrand) params.append("brand", mappedBrand);
-    return fetchApi(`/traits?${params.toString()}`);
+    return fetchApi(`/traits/groups?${params.toString()}`);
   },
 };

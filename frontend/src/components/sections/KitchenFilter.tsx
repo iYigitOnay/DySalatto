@@ -44,7 +44,8 @@ export default function KitchenFilter({ brand, onFilterChange, categories }: Kit
           traitsApi.getAll(brand),
           fetchApi(`/ingredients?brand=${brand === 'salatto' ? 'DYSALATTO' : 'DYCAKE'}`)
         ]);
-        setDietaryOptions(traitRes.data.flatMap((tg: any) => tg.traits.map((t: any) => t.name)));
+        const allTraits = traitRes.data.flatMap((tg: any) => tg.traits.map((t: any) => t.name));
+        setDietaryOptions(Array.from(new Set(allTraits)));
         setIngredients(ingRes.data);
       } catch (error) {
         console.error("Filtre verileri yüklenemedi:", error);
