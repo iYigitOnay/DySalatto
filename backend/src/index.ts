@@ -7,6 +7,7 @@ import authRoutes from "./routes/auth.routes";
 import categoryRoutes from "./routes/category.routes";
 import traitRoutes from "./routes/trait.routes";
 import ingredientRoutes from "./routes/ingredient.routes";
+import productRoutes from "./routes/product.routes";
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/traits", traitRoutes);
 app.use("/api/ingredients", ingredientRoutes);
+app.use("/api/products", productRoutes);
 
 // Health Check
 app.get("/api/health", (req: Request, res: Response) => {

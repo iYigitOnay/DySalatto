@@ -1,18 +1,21 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Navbar from "@/components/sections/Navbar";
 import Footer from "@/components/sections/Footer";
 import KitchenFilter, { FilterState } from "@/components/sections/KitchenFilter";
 import KitchenProductCard from "@/components/sections/KitchenProductCard";
-import { MOCK_PRODUCTS, Product } from "@/lib/mockData";
+import { productsApi, categoriesApi } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import FloatingCart from "@/components/ui/FloatingCart";
 import { useToast } from "@/components/ui/ToastProvider";
 
 export default function SalattoKitchenPage() {
   const { showToast } = useToast();
-  const [cartItems, setCartItems] = useState<Array<{ product: Product; quantity: number }>>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [cartItems, setCartItems] = useState<Array<{ product: any; quantity: number }>>([]);
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     category: 'Tümü',
@@ -20,31 +23,48 @@ export default function SalattoKitchenPage() {
     ingredients: [],
   });
 
-  const categories = ['Bowl', 'Wrap', 'Salata', 'İçecek'];
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [prodRes, catRes] = await Promise.all([
+          productsApi.getAll('salatto'),
+          categoriesApi.getAll('salatto')
+        ]);
+        setProducts(prodRes.data);
+        setCategories(catRes.data);
+      } catch (error) {
+        showToast("Veriler yüklenirken bir hata oluştu.", "error");
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  const categoryNames = useMemo(() => categories.map(c => c.name), [categories]);
 
   const filteredProducts = useMemo(() => {
-    return MOCK_PRODUCTS.filter(p => {
-      if (p.brand !== 'salatto') return false;
-      
+    return products.filter(p => {
       // Search check
       const searchMatch = !filters.search || 
         p.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-        p.description.toLowerCase().includes(filters.search.toLowerCase());
+        (p.description && p.description.toLowerCase().includes(filters.search.toLowerCase()));
       
       // Category check
-      const categoryMatch = filters.category === 'Tümü' || p.category === filters.category;
+      const categoryMatch = filters.category === 'Tümü' || p.category.name === filters.category;
 
-      // Dietary check
+      // Dietary check (Traits)
       const dietaryMatch = filters.dietary.length === 0 || 
-        filters.dietary.every(tag => p.dietaryTags.includes(tag));
+        filters.dietary.every(tagName => p.traits.some((t: any) => t.trait.name === tagName));
 
-      // Ingredient check (Granular)
+      // Ingredient check
       const ingredientMatch = filters.ingredients.length === 0 || 
-        filters.ingredients.every(id => p.ingredients.includes(id));
+        filters.ingredients.every(ingId => p.ingredients.some((i: any) => i.ingredientId === ingId));
 
       return searchMatch && categoryMatch && dietaryMatch && ingredientMatch;
     });
-  }, [filters]);
+  }, [filters, products]);
 
   const handleAddToCart = (product: Product) => {
     setCartItems(prev => {
@@ -100,7 +120,7 @@ export default function SalattoKitchenPage() {
       {/* Filter Station */}
       <KitchenFilter 
         brand="salatto" 
-        categories={categories} 
+        categories={categoryNames} 
         onFilterChange={setFilters} 
       />
 
@@ -124,7 +144,7 @@ export default function SalattoKitchenPage() {
           </AnimatePresence>
         </div>
 
-        {filteredProducts.length === 0 && (
+        {filteredProducts.length === 0 && !loading && (
             <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -138,6 +158,13 @@ export default function SalattoKitchenPage() {
                     Filtreleri Sıfırla
                 </button>
             </motion.div>
+        )}
+
+        {loading && (
+          <div className="text-center py-40">
+             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-terracotta mx-auto"></div>
+             <p className="text-white/40 mt-4 font-serif italic">Lezzetler hazırlanıyor...</p>
+          </div>
         )}
       </section>
 

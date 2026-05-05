@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, X, ChevronDown, Check } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Ingredient, MOCK_INGREDIENTS } from '@/lib/mockData';
+import { traitsApi, fetchApi } from '@/lib/api';
 
 interface KitchenFilterProps {
   brand: 'salatto' | 'cake';
@@ -28,12 +28,30 @@ const DynamicIcon = ({ iconName, className }: { iconName?: string, className?: s
 
 export default function KitchenFilter({ brand, onFilterChange, categories }: KitchenFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [ingredients, setIngredients] = useState<any[]>([]);
+  const [dietaryOptions, setDietaryOptions] = useState<string[]>([]);
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     category: 'Tümü',
     dietary: [],
     ingredients: [],
   });
+
+  useEffect(() => {
+    const loadFilterData = async () => {
+      try {
+        const [traitRes, ingRes] = await Promise.all([
+          traitsApi.getAll(brand),
+          fetchApi(`/ingredients?brand=${brand.toUpperCase()}`)
+        ]);
+        setDietaryOptions(traitRes.data.flatMap((tg: any) => tg.traits.map((t: any) => t.name)));
+        setIngredients(ingRes.data);
+      } catch (error) {
+        console.error("Filtre verileri yüklenemedi:", error);
+      }
+    };
+    loadFilterData();
+  }, [brand]);
 
   const isCake = brand === 'cake';
   const accentColor = isCake ? 'bg-brand-sand text-[#110C08]' : 'bg-brand-terracotta text-white';
@@ -59,10 +77,6 @@ export default function KitchenFilter({ brand, onFilterChange, categories }: Kit
       : [...filters.ingredients, id];
     updateFilters({ ingredients: newIng });
   };
-
-  const dietaryOptions = isCake 
-    ? ['Rafine Şekersiz', 'Glutensiz', 'Vegan', 'Düşük Kalori']
-    : ['Vegan', 'Vejetaryen', 'Glutensiz', 'Yüksek Protein', 'Düşük Karbonhidrat'];
 
   return (
     <div className="w-full max-w-7xl mx-auto px-6 mb-12">
@@ -150,7 +164,7 @@ export default function KitchenFilter({ brand, onFilterChange, categories }: Kit
                 <div>
                   <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mb-6">İçerik Hassasiyeti (Spesifik)</h4>
                   <div className="flex flex-wrap gap-2">
-                    {MOCK_INGREDIENTS.map((ing) => (
+                    {ingredients.map((ing) => (
                       <button
                         key={ing.id}
                         onClick={() => toggleIngredient(ing.id)}
@@ -161,7 +175,7 @@ export default function KitchenFilter({ brand, onFilterChange, categories }: Kit
                             : "bg-white/5 text-white/40 hover:bg-white/10"
                         )}
                       >
-                        <DynamicIcon iconName={ing.iconName} className="w-3 h-3" />
+                        <DynamicIcon iconName={ing.iconName || 'Wheat'} className="w-3 h-3" />
                         {ing.name}
                         {filters.ingredients.includes(ing.id) && <Check className="w-3 h-3 ml-1" />}
                       </button>
