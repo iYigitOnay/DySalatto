@@ -35,6 +35,7 @@ export default function AdminLayout({
   const sidebarLinks = [
     { name: "Dashboard", href: `/admin/${brand}/dashboard` },
     { name: "Siparişler", href: `/admin/${brand}/orders` },
+    { name: "Ürün Yönetimi", href: `/admin/${brand}/products` },
     { name: "Menü Yönetimi", href: `/admin/${brand}/menu` },
     { name: "Malzemeler (DIY)", href: `/admin/${brand}/ingredients` },
     { name: "Finans & Rapor", href: `/admin/${brand}/finance` },

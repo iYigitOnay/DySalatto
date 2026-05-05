@@ -10,9 +10,18 @@ import { motion, AnimatePresence } from "framer-motion";
 import FloatingCart from "@/components/ui/FloatingCart";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/components/providers/AuthProvider';
+import ProductFormModal from '@/components/ui/ProductFormModal';
+import { Plus } from 'lucide-react';
 
 export default function SalattoKitchenPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
   const { showToast } = useToast();
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
+
   const [cartItems, setCartItems] = useState<Array<{ product: any; quantity: number }>>([]);
   const [filters, setFilters] = useState<FilterState>({
     search: '',
@@ -86,6 +95,16 @@ export default function SalattoKitchenPage() {
     if (item) showToast(`${item.product.name} sepetten çıkarıldı.`, 'info');
   };
 
+  const handleEditProduct = (product: any) => {
+    setEditingProduct(product);
+    setIsModalOpen(true);
+  };
+
+  const handleAddProduct = () => {
+    setEditingProduct(null);
+    setIsModalOpen(true);
+  };
+
   const loading = categoriesLoading || productsLoading;
 
   return (
@@ -95,10 +114,25 @@ export default function SalattoKitchenPage() {
       {/* Header Section */}
       <section className="relative pt-40 pb-24 overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 relative z-10">
-          <p className="text-[10px] font-black tracking-[0.5em] text-brand-terracotta uppercase mb-4">Mutfağımızdan Sofranıza</p>
-          <h1 className="text-5xl md:text-8xl font-serif text-white italic leading-tight">
-            Tazeliğin <br /> <span className="text-brand-terracotta not-italic font-sans font-black uppercase tracking-tighter">İmza Lezzetleri</span>
-          </h1>
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-[10px] font-black tracking-[0.5em] text-brand-terracotta uppercase mb-4">Mutfağımızdan Sofranıza</p>
+              <h1 className="text-5xl md:text-8xl font-serif text-white italic leading-tight">
+                Tazeliğin <br /> <span className="text-brand-terracotta not-italic font-sans font-black uppercase tracking-tighter">İmza Lezzetleri</span>
+              </h1>
+            </div>
+            {isAdmin && (
+              <button 
+                onClick={handleAddProduct}
+                className="group flex items-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 px-6 py-4 rounded-3xl transition-all shadow-2xl"
+              >
+                <div className="bg-brand-terracotta p-2 rounded-xl group-hover:scale-110 transition-transform">
+                  <Plus className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-[11px] font-black uppercase tracking-widest text-white">YENİ ÜRÜN EKLE</span>
+              </button>
+            )}
+          </div>
           <p className="text-white/40 text-lg mt-8 max-w-2xl leading-relaxed">
             Her bir kâse, tarladan yeni hasat edilmiş malzemeler ve şeflerimizin artisan teknikleriyle size özel hazırlanıyor.
           </p>
@@ -125,11 +159,12 @@ export default function SalattoKitchenPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <AnimatePresence mode="popLayout">
-            {filteredProducts.map((product) => (
+            {filteredProducts.map((product: any) => (
               <KitchenProductCard 
                 key={product.id} 
                 product={product} 
                 onAddToCart={handleAddToCart} 
+                onEdit={isAdmin ? () => handleEditProduct(product) : undefined}
               />
             ))}
           </AnimatePresence>
@@ -158,6 +193,13 @@ export default function SalattoKitchenPage() {
           </div>
         )}
       </section>
+
+      <ProductFormModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        brand="salatto"
+        product={editingProduct}
+      />
 
       <FloatingCart 
         items={cartItems} 
