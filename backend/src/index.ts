@@ -8,6 +8,7 @@ import categoryRoutes from "./routes/category.routes";
 import traitRoutes from "./routes/trait.routes";
 import ingredientRoutes from "./routes/ingredient.routes";
 import productRoutes from "./routes/product.routes";
+import path from "path";
 
 dotenv.config();
 
@@ -23,6 +24,9 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
+
+// Static Files
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Routes
 app.use("/api/auth", authRoutes);

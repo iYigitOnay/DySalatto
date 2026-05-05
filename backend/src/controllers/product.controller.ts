@@ -39,7 +39,19 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
 
 export const createProduct = async (req: Request, res: Response): Promise<void> => {
   try {
-    const validatedData = productSchema.parse(req.body);
+    // Multer'dan gelen dosya varsa URL'i ayarla
+    const imagePath = req.file ? `/uploads/products/${req.file.filename}` : req.body.image;
+    
+    // Body parse: Multipart form-data string olarak gelebilir, düzelt
+    const body = {
+      ...req.body,
+      price: parseFloat(req.body.price),
+      traitIds: typeof req.body.traitIds === 'string' ? JSON.parse(req.body.traitIds) : req.body.traitIds,
+      ingredientIds: typeof req.body.ingredientIds === 'string' ? JSON.parse(req.body.ingredientIds) : req.body.ingredientIds,
+      image: imagePath
+    };
+
+    const validatedData = productSchema.parse(body);
     const { traitIds, ingredientIds, ...rest } = validatedData;
 
     const product = await prisma.product.create({
@@ -80,10 +92,21 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
 export const updateProduct = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const validatedData = productSchema.parse(req.body);
+    
+    // Multer'dan gelen dosya varsa URL'i ayarla
+    const imagePath = req.file ? `/uploads/products/${req.file.filename}` : req.body.image;
+    
+    const body = {
+      ...req.body,
+      price: parseFloat(req.body.price),
+      traitIds: typeof req.body.traitIds === 'string' ? JSON.parse(req.body.traitIds) : req.body.traitIds,
+      ingredientIds: typeof req.body.ingredientIds === 'string' ? JSON.parse(req.body.ingredientIds) : req.body.ingredientIds,
+      image: imagePath
+    };
+
+    const validatedData = productSchema.parse(body);
     const { traitIds, ingredientIds, ...rest } = validatedData;
 
-    // Önce mevcut ilişkileri temizleyip sonra yenilerini eklemek en güvenli yol
     const product = await prisma.product.update({
       where: { id },
       data: {
