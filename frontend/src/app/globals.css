@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-brand-terracotta: #D35400;
+  --color-brand-terracotta-dark: #A04000;
+  --color-brand-cream: #FDF5E6;
+  --color-brand-sand: #F5DEB3;
+  --color-brand-earth: #4A3728;
+  --color-brand-charcoal: #0a0a0a;
+
+  --font-serif: "Playfair Display", serif;
+  --font-sans: "Inter", sans-serif;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --fill-dur: 250ms;
+  --brand-primary: #D35400;
+  --brand-primary-dark: #A04000;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+/* ── PROGRESS BAR LOGIC ── */
+.nav-link {
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, var(--brand-primary), var(--brand-primary-dark));
+  border-radius: 1.5px;
+  transition: width 0s;
+}
+
+/* Filling state */
+.nav-link.filling::after {
+  width: 100%;
+  transition: width var(--fill-dur) linear;
+}
+
+/* Open state - Bar stays full and glows */
+.nav-item.open .nav-link::after {
+  width: 100%;
+  background: var(--brand-primary);
+  box-shadow: 0 0 10px rgba(211, 84, 0, 0.6);
+  transition: none;
+}
+
+/* ── MEGAMENU SHAPE ── */
+.megamenu-container {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  display: flex;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.menu-left-dark {
+  background: #0a0a0a;
+  padding: 2rem;
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
