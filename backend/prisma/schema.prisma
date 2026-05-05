@@ -169,7 +169,8 @@ model Ingredient {
   id      String  @id @default(uuid())
   brand   Brand
   name    String
-  price   Decimal @default(0) @db.Decimal(10, 2)
+  price   Decimal @db.Decimal(10, 2)
+  category String @default("Genel") // e.g., "Protein", "Taban", "Sos"
   isStock Boolean @default(true)
 
   // Standart ürünlerin reçetesinde kullanılma
