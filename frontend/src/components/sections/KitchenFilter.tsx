@@ -42,7 +42,7 @@ export default function KitchenFilter({ brand, onFilterChange, categories }: Kit
       try {
         const [traitRes, ingRes] = await Promise.all([
           traitsApi.getAll(brand),
-          fetchApi(`/ingredients?brand=${brand.toUpperCase()}`)
+          fetchApi(`/ingredients?brand=${brand === 'salatto' ? 'DYSALATTO' : 'DYCAKE'}`)
         ]);
         setDietaryOptions(traitRes.data.flatMap((tg: any) => tg.traits.map((t: any) => t.name)));
         setIngredients(ingRes.data);
