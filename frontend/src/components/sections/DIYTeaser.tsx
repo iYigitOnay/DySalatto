@@ -5,8 +5,10 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ArrowRight, Sparkles, MousePointer2 } from 'lucide-react';
 import WetPaintButton from '../ui/WetPaintButton';
+import { useRouter } from 'next/navigation';
 
 const DIYTeaser: React.FC = () => {
+  const router = useRouter();
   const containerRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -82,7 +84,11 @@ const DIYTeaser: React.FC = () => {
           </p>
 
           <div className="flex flex-col md:flex-row items-center justify-center gap-8">
-            <WetPaintButton isScrolled={false} className="px-12 py-6 text-sm">
+            <WetPaintButton 
+              onClick={() => router.push('/salatto/kendin-tasarla')}
+              isScrolled={false} 
+              className="px-12 py-6 text-sm"
+            >
               TASARLAMAYA BAŞLA
             </WetPaintButton>
             

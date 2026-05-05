@@ -91,12 +91,14 @@ const WetPaintButton = ({
   children, 
   className, 
   isScrolled,
-  theme = 'salatto'
+  theme = 'salatto',
+  onClick
 }: { 
   className?: string; 
   children: React.ReactNode; 
   isScrolled: boolean;
   theme?: 'salatto' | 'cake';
+  onClick?: () => void;
 }) => {
   // Brand colors logic
   const isCake = theme === 'cake';
@@ -109,7 +111,9 @@ const WetPaintButton = ({
   const dripColorHover = isCake ? "group-hover:bg-white" : "group-hover:bg-brand-terracotta-dark";
 
   return (
-    <button className={cn(
+    <button 
+      onClick={onClick}
+      className={cn(
       "group relative rounded-full font-black transition-all duration-500 overflow-visible shadow-lg",
       shadowColor,
       isScrolled ? "px-6 py-2 text-[9px]" : "px-8 py-3 text-[10px]",

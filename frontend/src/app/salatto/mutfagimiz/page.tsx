@@ -9,6 +9,7 @@ import { productsApi, categoriesApi } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import FloatingCart from "@/components/ui/FloatingCart";
 import { useToast } from "@/components/ui/ToastProvider";
+import { useCartStore } from "@/store/cartStore";
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/components/providers/AuthProvider';
 import ProductFormModal from '@/components/ui/ProductFormModal';
@@ -22,7 +23,7 @@ export default function SalattoKitchenPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
 
-  const [cartItems, setCartItems] = useState<Array<{ product: any; quantity: number }>>([]);
+  const { addItem } = useCartStore();
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     category: 'Tümü',
@@ -65,34 +66,16 @@ export default function SalattoKitchenPage() {
   }, [filters, products]);
 
   const handleAddToCart = (product: any) => {
-    setCartItems(prev => {
-      const existing = prev.find(item => item.product.id === product.id);
-      if (existing) {
-        return prev.map(item => 
-          item.product.id === product.id 
-            ? { ...item, quantity: item.quantity + 1 } 
-            : item
-        );
-      }
-      return [...prev, { product, quantity: 1 }];
+    addItem({
+      id: product.id,
+      product: product,
+      name: product.name,
+      brand: 'salatto',
+      price: Number(product.price),
+      image: product.image,
+      isCustom: false
     });
     showToast(`${product.name} sepete eklendi.`, 'success');
-  };
-
-  const handleUpdateQuantity = (productId: string, delta: number) => {
-    setCartItems(prev => prev.map(item => {
-      if (item.product.id === productId) {
-        const newQty = Math.max(1, item.quantity + delta);
-        return { ...item, quantity: newQty };
-      }
-      return item;
-    }));
-  };
-
-  const handleRemoveFromCart = (productId: string) => {
-    const item = cartItems.find(i => i.product.id === productId);
-    setCartItems(prev => prev.filter(item => item.product.id !== productId));
-    if (item) showToast(`${item.product.name} sepetten çıkarıldı.`, 'info');
   };
 
   const handleEditProduct = (product: any) => {
@@ -201,11 +184,7 @@ export default function SalattoKitchenPage() {
         product={editingProduct}
       />
 
-      <FloatingCart 
-        items={cartItems} 
-        onUpdateQuantity={handleUpdateQuantity} 
-        onRemove={handleRemoveFromCart} 
-      />
+      <FloatingCart />
       <Footer />
     </main>
   );

@@ -1,32 +1,28 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingBag, X, Plus, Minus, ArrowRight, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Product } from "@/lib/mockData";
 import { usePathname } from "next/navigation";
+import { useCartStore } from "@/store/cartStore";
 
-interface FloatingCartProps {
-  items: Array<{ product: Product; quantity: number }>;
-  onUpdateQuantity: (productId: string, delta: number) => void;
-  onRemove: (productId: string) => void;
-}
-
-const FloatingCart = ({
-  items,
-  onUpdateQuantity,
-  onRemove,
-}: FloatingCartProps) => {
+const FloatingCart = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
   const pathname = usePathname();
   const isCakePage = pathname?.startsWith("/cake");
 
-  const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
-  const totalPrice = items.reduce((acc, item) => {
-    const price = parseInt(item.product.price.replace(/[^0-9]/g, ""));
-    return acc + price * item.quantity;
-  }, 0);
+  const { items, updateQuantity, removeItem, getTotalPrice, getTotalItems } = useCartStore();
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  if (!isHydrated) return null;
+
+  const totalItems = getTotalItems();
+  const totalPrice = getTotalPrice();
 
   if (totalItems === 0) return null;
 
@@ -108,38 +104,45 @@ const FloatingCart = ({
                 {items.map((item) => (
                   <motion.div 
                     layout
-                    key={item.product.id} 
+                    key={item.id} 
                     className="flex gap-4 md:gap-6 group"
                   >
 
                     <div className="w-20 h-20 rounded-2xl overflow-hidden border border-white/5 shrink-0 bg-white/5">
                       <img
-                        src={item.product.image}
+                        src={item.image || (isCakePage ? "/images/forDYCake/DyCakeLogo.png" : "/images/forDYSalatto/DySalattoLogo.png")}
                         className="w-full h-full object-cover"
-                        alt={item.product.name}
+                        alt={item.name}
                       />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start mb-1">
                         <h4 className="text-white font-bold truncate pr-4">
-                          {item.product.name}
+                          {item.name}
                         </h4>
                         <button
-                          onClick={() => onRemove(item.product.id)}
+                          onClick={() => removeItem(item.id)}
                           className="text-white/10 hover:text-red-400 transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-                      <p className="text-white/30 text-[11px] mb-4">
-                        {item.product.category}
-                      </p>
+                      
+                      {item.isCustom ? (
+                        <p className="text-white/30 text-[9px] mb-4 uppercase tracking-tighter leading-tight">
+                          {item.ingredients?.map(ing => ing.name).join(", ")}
+                        </p>
+                      ) : (
+                        <p className="text-white/30 text-[11px] mb-4">
+                          {item.product?.category || "Menü"}
+                        </p>
+                      )}
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3 bg-white/5 rounded-xl p-1 border border-white/5">
                           <button
                             onClick={() =>
-                              onUpdateQuantity(item.product.id, -1)
+                              updateQuantity(item.id, -1)
                             }
                             className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:bg-white/5 hover:text-white transition-all"
                           >
@@ -149,14 +152,14 @@ const FloatingCart = ({
                             {item.quantity}
                           </span>
                           <button
-                            onClick={() => onUpdateQuantity(item.product.id, 1)}
+                            onClick={() => updateQuantity(item.id, 1)}
                             className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:bg-white/5 hover:text-white transition-all"
                           >
                             <Plus className="w-3 h-3" />
                           </button>
                         </div>
                         <span className="text-sm font-black text-white tracking-tighter">
-                          {item.product.price}
+                          {Number(item.price) * item.quantity} TL
                         </span>
                       </div>
                     </div>
