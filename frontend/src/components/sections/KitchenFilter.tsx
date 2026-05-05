@@ -1,21 +1,23 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Search, Filter, X, ChevronDown, Check } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { traitsApi, fetchApi } from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
 
 interface KitchenFilterProps {
   brand: 'salatto' | 'cake';
   onFilterChange: (filters: FilterState) => void;
-  categories: string[];
+  categories: any[];
 }
 
 export type FilterState = {
   search: string;
   category: string;
+  categoryId?: string;
   dietary: string[];
   ingredients: string[];
 };
@@ -28,8 +30,6 @@ const DynamicIcon = ({ iconName, className }: { iconName?: string, className?: s
 
 export default function KitchenFilter({ brand, onFilterChange, categories }: KitchenFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [ingredients, setIngredients] = useState<any[]>([]);
-  const [dietaryOptions, setDietaryOptions] = useState<string[]>([]);
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     category: 'Tümü',
@@ -37,22 +37,19 @@ export default function KitchenFilter({ brand, onFilterChange, categories }: Kit
     ingredients: [],
   });
 
-  useEffect(() => {
-    const loadFilterData = async () => {
-      try {
-        const [traitRes, ingRes] = await Promise.all([
-          traitsApi.getAll(brand),
-          fetchApi(`/ingredients?brand=${brand === 'salatto' ? 'DYSALATTO' : 'DYCAKE'}`)
-        ]);
-        const allTraits = traitRes.data.flatMap((tg: any) => tg.traits.map((t: any) => t.name));
-        setDietaryOptions(Array.from(new Set(allTraits)));
-        setIngredients(ingRes.data);
-      } catch (error) {
-        console.error("Filtre verileri yüklenemedi:", error);
-      }
-    };
-    loadFilterData();
-  }, [brand]);
+  const { data: ingredientsData } = useQuery({
+    queryKey: ['ingredients', brand],
+    queryFn: () => fetchApi(`/ingredients?brand=${brand === 'salatto' ? 'DYSALATTO' : 'DYCAKE'}`)
+  });
+
+  const { data: traitsData } = useQuery({
+    queryKey: ['traits', brand, filters.categoryId],
+    queryFn: () => traitsApi.getAll(brand, filters.categoryId),
+  });
+
+  const ingredients = ingredientsData?.data || [];
+  const dietaryOptions = traitsData?.data?.flatMap((tg: any) => tg.traits.map((t: any) => t.name)) || [];
+  const uniqueDietaryOptions = Array.from(new Set(dietaryOptions)) as string[];
 
   const isCake = brand === 'cake';
   const accentColor = isCake ? 'bg-brand-sand text-[#110C08]' : 'bg-brand-terracotta text-white';
@@ -63,6 +60,15 @@ export default function KitchenFilter({ brand, onFilterChange, categories }: Kit
     const updated = { ...filters, ...newFilters };
     setFilters(updated);
     onFilterChange(updated);
+  };
+
+  const handleCategoryClick = (catName: string) => {
+    const categoryObj = categories.find(c => c.name === catName);
+    updateFilters({ 
+        category: catName, 
+        categoryId: categoryObj?.id,
+        dietary: []
+    });
   };
 
   const toggleDietary = (tag: string) => {
@@ -97,10 +103,10 @@ export default function KitchenFilter({ brand, onFilterChange, categories }: Kit
           </div>
 
           <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
-            {['Tümü', ...categories].map((cat) => (
+            {['Tümü', ...categories.map(c => c.name)].map((cat) => (
               <button
                 key={cat}
-                onClick={() => updateFilters({ category: cat })}
+                onClick={() => handleCategoryClick(cat)}
                 className={cn(
                   "px-6 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
                   filters.category === cat 
@@ -142,22 +148,28 @@ export default function KitchenFilter({ brand, onFilterChange, categories }: Kit
               <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                 {/* Dietary Tags */}
                 <div>
-                  <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mb-6">Beslenme Tercihi</h4>
+                  <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mb-6">
+                    {filters.categoryId ? 'Bu Kategoriye Özel Tercihler' : 'Beslenme Tercihi'}
+                  </h4>
                   <div className="flex flex-wrap gap-3">
-                    {dietaryOptions.map((tag) => (
-                      <button
-                        key={tag}
-                        onClick={() => toggleDietary(tag)}
-                        className={cn(
-                          "px-4 py-2.5 rounded-lg text-[10px] font-bold transition-all border",
-                          filters.dietary.includes(tag)
-                            ? accentBorder + " " + accentText + " bg-white/5"
-                            : "border-white/5 text-white/40 hover:border-white/20"
-                        )}
-                      >
-                        {tag}
-                      </button>
-                    ))}
+                    {uniqueDietaryOptions.length > 0 ? (
+                      uniqueDietaryOptions.map((tag) => (
+                        <button
+                          key={tag}
+                          onClick={() => toggleDietary(tag)}
+                          className={cn(
+                            "px-4 py-2.5 rounded-lg text-[10px] font-bold transition-all border",
+                            filters.dietary.includes(tag)
+                              ? accentBorder + " " + accentText + " bg-white/5"
+                              : "border-white/5 text-white/40 hover:border-white/20"
+                          )}
+                        >
+                          {tag}
+                        </button>
+                      ))
+                    ) : (
+                      <p className="text-white/20 text-[10px] italic">Bu kategori için özel filtre bulunmuyor.</p>
+                    )}
                   </div>
                 </div>
 
@@ -165,7 +177,7 @@ export default function KitchenFilter({ brand, onFilterChange, categories }: Kit
                 <div>
                   <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mb-6">İçerik Hassasiyeti (Spesifik)</h4>
                   <div className="flex flex-wrap gap-2">
-                    {ingredients.map((ing) => (
+                    {ingredients.map((ing: any) => (
                       <button
                         key={ing.id}
                         onClick={() => toggleIngredient(ing.id)}
@@ -187,7 +199,7 @@ export default function KitchenFilter({ brand, onFilterChange, categories }: Kit
 
               <div className="mt-12 flex justify-between items-center bg-white/[0.03] border-t border-white/5 -mx-6 -mb-6 px-6 py-4 md:py-6 rounded-b-[32px] min-h-[80px]">
                 <button 
-                  onClick={() => updateFilters({ dietary: [], ingredients: [], category: 'Tümü', search: '' })}
+                  onClick={() => updateFilters({ dietary: [], ingredients: [], category: 'Tümü', categoryId: undefined, search: '' })}
                   className="text-[10px] font-black text-white/20 hover:text-white uppercase tracking-widest transition-colors"
                 >
                   TÜMÜNÜ TEMİZLE

@@ -18,7 +18,12 @@ export const getCategories = async (req: Request, res: Response): Promise<void> 
     
     const categories = await prisma.category.findMany({
       where: brand ? { brand: brand as Brand } : undefined,
-      orderBy: { createdAt: "desc" }
+      include: {
+        _count: {
+          select: { products: true }
+        }
+      },
+      orderBy: { orderIndex: "asc" }
     });
 
     res.status(200).json({ success: true, data: categories });
@@ -65,9 +70,48 @@ export const createCategory = async (req: Request, res: Response): Promise<void>
   }
 };
 
+export const reorderCategories = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { orders } = req.body; // Array<{ id: string, orderIndex: number }>
+
+    if (!Array.isArray(orders)) {
+      res.status(400).json({ success: false, message: "Geçersiz sıralama verisi." });
+      return;
+    }
+
+    await prisma.$transaction(
+      orders.map((o) =>
+        prisma.category.update({
+          where: { id: o.id },
+          data: { orderIndex: o.orderIndex },
+        })
+      )
+    );
+
+    res.status(200).json({ success: true, message: "Sıralama güncellendi." });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Sıralama güncellenirken hata oluştu." });
+  }
+};
+
 export const deleteCategory = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = req.params.id as string;
+
+    // İçinde ürün var mı kontrol et
+    const category = await prisma.category.findUnique({
+      where: { id },
+      include: { _count: { select: { products: true } } }
+    });
+
+    if (category && category._count.products > 0) {
+      res.status(400).json({ 
+        success: false, 
+        message: "İçinde ürün bulunan bir kategoriyi silemezsiniz. Lütfen önce ürünleri başka bir kategoriye taşıyın." 
+      });
+      return;
+    }
+
     await prisma.category.delete({ where: { id } });
     res.status(200).json({ success: true, message: "Kategori silindi." });
   } catch (error) {

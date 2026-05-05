@@ -8,17 +8,19 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
         "Content-Type": "application/json",
         ...options.headers,
       },
+      credentials: "include",
     });
 
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
       const data = await response.json();
       if (!response.ok) {
+        // Eğer hata 401 ise ve login sayfasında değilsek, kullanıcıyı logout yapabiliriz
+        // Ama şimdilik sadece hatayı fırlatalım
         throw new Error(data.message || "Bir hata oluştu");
       }
       return data;
     } else {
-      // JSON değilse (muhtemelen 404 HTML sayfası veya server hatası)
       const text = await response.text();
       console.error("API Error (Not JSON):", text.slice(0, 200));
       throw new Error(`Beklenmeyen yanıt formatı (Status: ${response.status}). Lütfen backend'in çalıştığından emin olun.`);
@@ -57,10 +59,16 @@ export const categoriesApi = {
 };
 
 export const traitsApi = {
-  getAll: (brand?: string) => {
+  getAll: (brand?: string, categoryId?: string) => {
     const params = new URLSearchParams();
     const mappedBrand = mapBrand(brand);
     if (mappedBrand) params.append("brand", mappedBrand);
+    if (categoryId) params.append("categoryId", categoryId);
     return fetchApi(`/traits/groups?${params.toString()}`);
   },
+};
+
+export const authApi = {
+  me: () => fetchApi("/auth/me"),
+  logout: () => fetchApi("/auth/logout", { method: "POST" }),
 };

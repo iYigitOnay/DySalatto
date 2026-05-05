@@ -93,12 +93,14 @@ model Address {
 // --- CATEGORY & TRAIT (FILTER) MODELS ---
 
 model Category {
-  id    String @id @default(uuid())
-  brand Brand
-  name  String
-  slug  String
+  id         String @id @default(uuid())
+  brand      Brand
+  name       String
+  slug       String
+  orderIndex Int    @default(0)
 
-  products Product[]
+  products    Product[]
+  traitGroups TraitGroup[] // Bu kategoriye özel filtre grupları
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -111,7 +113,8 @@ model TraitGroup {
   brand Brand
   name  String // e.g., "Beslenme Tercihi", "İçerik Hassasiyeti"
 
-  traits Trait[]
+  traits     Trait[]
+  categories Category[] // Bu filtre grubunun görüneceği kategoriler
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

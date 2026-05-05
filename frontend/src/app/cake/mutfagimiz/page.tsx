@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import Navbar from "@/components/sections/Navbar";
 import Footer from "@/components/sections/Footer";
 import KitchenFilter, { FilterState } from "@/components/sections/KitchenFilter";
@@ -9,12 +9,10 @@ import { productsApi, categoriesApi } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import FloatingCart from "@/components/ui/FloatingCart";
 import { useToast } from "@/components/ui/ToastProvider";
+import { useQuery } from '@tanstack/react-query';
 
 export default function CakeKitchenPage() {
   const { showToast } = useToast();
-  const [products, setProducts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [cartItems, setCartItems] = useState<Array<{ product: any; quantity: number }>>([]);
   const [filters, setFilters] = useState<FilterState>({
     search: '',
@@ -23,37 +21,28 @@ export default function CakeKitchenPage() {
     ingredients: [],
   });
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const [prodRes, catRes] = await Promise.all([
-          productsApi.getAll('cake'),
-          categoriesApi.getAll('cake')
-        ]);
-        setProducts(prodRes.data);
-        setCategories(catRes.data);
-      } catch (error) {
-        showToast("Veriler yüklenirken bir hata oluştu.", "error");
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
-  }, []);
+  // Kategorileri Query ile çekiyoruz
+  const { data: categoriesRes, isLoading: categoriesLoading } = useQuery({
+    queryKey: ['categories', 'cake'],
+    queryFn: () => categoriesApi.getAll('cake')
+  });
 
-  const categoryNames = useMemo(() => categories.map(c => c.name), [categories]);
+  // Ürünleri Query ile çekiyoruz
+  const { data: productsRes, isLoading: productsLoading } = useQuery({
+    queryKey: ['products', 'cake', filters.categoryId],
+    queryFn: () => productsApi.getAll('cake', filters.categoryId)
+  });
+
+  const products = productsRes?.data || [];
+  const categories = categoriesRes?.data || [];
 
   const filteredProducts = useMemo(() => {
-    return products.filter(p => {
+    return products.filter((p: any) => {
       // Search check
       const searchMatch = !filters.search || 
         p.name.toLowerCase().includes(filters.search.toLowerCase()) ||
         (p.description && p.description.toLowerCase().includes(filters.search.toLowerCase()));
       
-      // Category check
-      const categoryMatch = filters.category === 'Tümü' || p.category.name === filters.category;
-
       // Dietary check (Traits)
       const dietaryMatch = filters.dietary.length === 0 || 
         filters.dietary.every(tagName => p.traits.some((t: any) => t.trait.name === tagName));
@@ -62,7 +51,7 @@ export default function CakeKitchenPage() {
       const ingredientMatch = filters.ingredients.length === 0 || 
         filters.ingredients.every(ingId => p.ingredients.some((i: any) => i.ingredientId === ingId));
 
-      return searchMatch && categoryMatch && dietaryMatch && ingredientMatch;
+      return searchMatch && dietaryMatch && ingredientMatch;
     });
   }, [filters, products]);
 
@@ -97,6 +86,8 @@ export default function CakeKitchenPage() {
     if (item) showToast(`${item.product.name} sepetten çıkarıldı.`, 'info');
   };
 
+  const loading = categoriesLoading || productsLoading;
+
   return (
     <main className="min-h-screen bg-brand-charcoal selection:bg-brand-sand/30">
       <Navbar />
@@ -120,7 +111,7 @@ export default function CakeKitchenPage() {
       {/* Filter Station */}
       <KitchenFilter 
         brand="cake" 
-        categories={categoryNames} 
+        categories={categories} 
         onFilterChange={setFilters} 
       />
 

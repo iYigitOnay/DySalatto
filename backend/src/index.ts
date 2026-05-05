@@ -17,7 +17,9 @@ const port = process.env.PORT || 3001;
 // Middleware
 app.use(cors({
   origin: "http://localhost:3000", // Next.js port
-  credentials: true
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 app.use(express.json());
 app.use(cookieParser());

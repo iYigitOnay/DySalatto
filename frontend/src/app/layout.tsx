@@ -5,6 +5,7 @@ import BrandSwitcher from "@/components/ui/BrandSwitcher";
 import FloatingWhatsApp from "@/components/ui/FloatingWhatsApp";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import QueryProvider from "@/components/providers/QueryProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,13 +34,15 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AuthProvider>
-          <ToastProvider>
-            {children}
-            <FloatingWhatsApp />
-            <BrandSwitcher />
-          </ToastProvider>
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <ToastProvider>
+              {children}
+              <FloatingWhatsApp />
+              <BrandSwitcher />
+            </ToastProvider>
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );
