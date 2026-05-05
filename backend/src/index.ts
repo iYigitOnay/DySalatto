@@ -8,6 +8,8 @@ import categoryRoutes from "./routes/category.routes";
 import traitRoutes from "./routes/trait.routes";
 import ingredientRoutes from "./routes/ingredient.routes";
 import productRoutes from "./routes/product.routes";
+import orderRoutes from "./routes/order.routes";
+import addressRoutes from "./routes/address.routes";
 import path from "path";
 
 dotenv.config();
@@ -34,6 +36,8 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/traits", traitRoutes);
 app.use("/api/ingredients", ingredientRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api/addresses", addressRoutes);
 
 // Health Check
 app.get("/api/health", (req: Request, res: Response) => {

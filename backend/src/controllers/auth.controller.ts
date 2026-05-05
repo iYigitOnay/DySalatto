@@ -151,6 +151,37 @@ export const me = async (req: any, res: Response): Promise<void> => {
   }
 };
 
+export const updateProfile = async (req: any, res: Response): Promise<void> => {
+  try {
+    const { name, email } = req.body;
+    const userId = req.user.id;
+
+    // E-posta değişmişse, başka bir kullanıcı tarafından kullanılıyor mu?
+    if (email) {
+      const existingUser = await prisma.user.findUnique({ where: { email } });
+      if (existingUser && existingUser.id !== userId) {
+        res.status(400).json({ success: false, message: "Bu e-posta adresi zaten kullanımda." });
+        return;
+      }
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { name, email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+      },
+    });
+
+    res.status(200).json({ success: true, data: updatedUser });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Profil güncellenemedi." });
+  }
+};
+
 export const logout = async (req: Request, res: Response): Promise<void> => {
   try {
     const refreshToken = req.cookies?.refreshToken;

@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ArrowRight, Menu, X, User, ShoppingBag, MapPin, ShieldCheck, LogOut } from "lucide-react";
+import { ChevronDown, ArrowRight, Menu, X, User, ShoppingBag, MapPin, ShieldCheck, LogOut, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -302,6 +302,10 @@ export default function Navbar() {
                               <MapPin className="w-4 h-4" />
                               Adreslerim
                             </Link>
+                            <Link href="/hesabim/ayarlar" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-white/70 hover:text-white transition-colors text-xs font-semibold">
+                              <Settings className="w-4 h-4" />
+                              Ayarlar
+                            </Link>
                             
                             {user.role === "ADMIN" && (
                               <Link href="/admin/gateway" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-brand-terracotta/10 text-brand-terracotta transition-colors text-xs font-bold mt-1 bg-brand-terracotta/5">
@@ -441,6 +445,12 @@ export default function Navbar() {
                   <div className="space-y-1">
                     <Link href="/hesabim/siparisler" className="flex items-center gap-2 text-xs font-semibold text-white/70 hover:text-white p-2 rounded-lg hover:bg-white/5">
                        <ShoppingBag className="w-4 h-4" /> Siparişlerim
+                    </Link>
+                    <Link href="/hesabim/adresler" className="flex items-center gap-2 text-xs font-semibold text-white/70 hover:text-white p-2 rounded-lg hover:bg-white/5">
+                       <MapPin className="w-4 h-4" /> Adreslerim
+                    </Link>
+                    <Link href="/hesabim/ayarlar" className="flex items-center gap-2 text-xs font-semibold text-white/70 hover:text-white p-2 rounded-lg hover:bg-white/5">
+                       <Settings className="w-4 h-4" /> Ayarlar
                     </Link>
                     {user.role === "ADMIN" && (
                       <Link href="/admin/gateway" className="flex items-center gap-2 text-xs font-bold text-brand-terracotta hover:text-brand-terracotta p-2 rounded-lg bg-brand-terracotta/10">
