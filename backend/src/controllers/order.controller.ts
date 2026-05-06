@@ -95,6 +95,84 @@ export const createOrder = async (req: Request, res: Response) => {
   }
 };
 
+export const getAdminOrders = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { brand } = req.query;
+    if (!brand) {
+      res.status(400).json({ success: false, message: "Marka parametresi gereklidir." });
+      return;
+    }
+
+    const orders = await prisma.subOrder.findMany({
+      where: { brand: brand as any },
+      include: {
+        order: {
+          include: {
+            user: { select: { name: true, email: true, phone: true } },
+            address: true,
+          }
+        },
+        items: {
+          include: {
+            product: true,
+            selectedIngredients: {
+              include: { ingredient: true }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+
+    res.status(200).json({ success: true, data: orders });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Siparişler getirilemedi." });
+  }
+};
+
+export const updateSubOrderStatus = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const subOrder = await prisma.subOrder.update({
+      where: { id },
+      data: { status },
+      include: { order: true }
+    });
+
+    // Ana siparişin durumunu da güncelle (Opsiyonel: Tüm alt siparişler tamamlandıysa ana siparişi tamamla)
+    // Şimdilik basit tutalım: Alt siparişlerden biri yoldaysa ana siparişi de yolda yapabiliriz.
+    if (status === "SHIPPED") {
+      await prisma.order.update({
+        where: { id: subOrder.orderId },
+        data: { status: "SHIPPED" }
+      });
+    } else if (status === "DELIVERED") {
+      // Diğer alt siparişleri kontrol et
+      const otherSubOrders = await prisma.subOrder.findMany({
+        where: { orderId: subOrder.orderId, NOT: { id } }
+      });
+      const allDelivered = otherSubOrders.every(so => so.status === "DELIVERED");
+      if (allDelivered) {
+        await prisma.order.update({
+          where: { id: subOrder.orderId },
+          data: { status: "DELIVERED" }
+        });
+      }
+    } else {
+       await prisma.order.update({
+        where: { id: subOrder.orderId },
+        data: { status: status }
+      });
+    }
+
+    res.status(200).json({ success: true, data: subOrder });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Sipariş durumu güncellenemedi." });
+  }
+};
+
 export const getMyOrders = async (req: Request, res: Response) => {
   try {
     const orders = await prisma.order.findMany({

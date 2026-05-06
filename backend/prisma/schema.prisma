@@ -118,13 +118,14 @@ model Ingredient {
 }
 
 model IngredientCategory {
-  id          String       @id @default(uuid())
+  id          String           @id @default(uuid())
   brand       Brand
   name        String
-  orderIndex  Int          @default(0)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  orderIndex  Int              @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
   ingredients Ingredient[]
+  steps       IngredientStep[]
 }
 
 model ProductIngredient {
@@ -137,15 +138,17 @@ model ProductIngredient {
 }
 
 model IngredientStep {
-  id          String           @id @default(uuid())
+  id          String              @id @default(uuid())
   brand       Brand
   name        String
-  orderIndex  Int              @default(0)
-  isRequired  Boolean          @default(false)
-  minSelect   Int              @default(0)
-  maxSelect   Int              @default(1)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  orderIndex  Int                 @default(0)
+  isRequired  Boolean             @default(false)
+  minSelect   Int                 @default(0)
+  maxSelect   Int                 @default(1)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  categoryId  String?
+  category    IngredientCategory? @relation(fields: [categoryId], references: [id])
   ingredients StepIngredient[]
 }
 

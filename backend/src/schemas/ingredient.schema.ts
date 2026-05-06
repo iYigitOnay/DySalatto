@@ -19,12 +19,14 @@ export const updateIngredientSchema = ingredientSchema.partial().omit({ brand: t
 
 export const ingredientStepSchema = z.object({
   brand: z.nativeEnum(Brand),
-  name: z.string().min(2, "Adım adı en az 2 karakter olmalıdır. (Örn: Taban Seç)"),
+  name: z.string().min(2, "Adım başlığı en az 2 karakter olmalıdır."),
   orderIndex: z.number().int().min(0).optional().default(0),
   isRequired: z.boolean().optional().default(false),
   minSelect: z.number().int().min(0).optional().default(0),
   maxSelect: z.number().int().min(1).optional().default(1),
-  ingredientIds: z.array(z.string().uuid()).optional().default([]), // Bu adıma eklenecek malzemelerin ID'leri
+  categoryId: z.string().uuid("Geçersiz kategori ID'si.").optional().nullable(),
+  ingredientIds: z.array(z.string().uuid()).optional().default([]), // Bu adıma manuel eklenecek malzemelerin ID'leri
 });
+
 
 export const updateIngredientStepSchema = ingredientStepSchema.partial().omit({ brand: true });

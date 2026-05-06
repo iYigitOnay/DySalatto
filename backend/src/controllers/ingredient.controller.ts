@@ -198,22 +198,36 @@ export const getSteps = async (req: Request, res: Response): Promise<void> => {
     const steps = await prisma.ingredientStep.findMany({
       where: brand ? { brand: brand as Brand } : undefined,
       include: {
+        category: {
+          include: {
+            ingredients: true
+          }
+        },
         ingredients: {
           include: {
-            ingredient: true // Adıma bağlı malzemelerin detaylarını da getir
+            ingredient: true 
           }
         }
       },
       orderBy: { orderIndex: "asc" }
     });
 
-    // Veriyi frontend'de daha rahat kullanabilmek için şekillendiriyoruz
-    const formattedSteps = steps.map(step => ({
-      ...step,
-      ingredients: step.ingredients.map(si => si.ingredient)
-    }));
+    // Merge manual ingredients and category ingredients into a single list
+    const processedSteps = steps.map(step => {
+      const manualIngs = step.ingredients.map(si => si.ingredient);
+      const categoryIngs = step.category?.ingredients || [];
+      
+      // Remove duplicates by ID
+      const allIngs = [...manualIngs, ...categoryIngs];
+      const uniqueIngs = Array.from(new Map(allIngs.map(i => [i.id, i])).values());
 
-    res.status(200).json({ success: true, data: formattedSteps });
+      return {
+        ...step,
+        ingredients: uniqueIngs
+      };
+    });
+
+    res.status(200).json({ success: true, data: processedSteps });
   } catch (error) {
     res.status(500).json({ success: false, message: "Adımlar getirilirken hata oluştu." });
   }
@@ -228,22 +242,14 @@ export const createStep = async (req: Request, res: Response): Promise<void> => 
       data: {
         ...stepData,
         ingredients: {
-          create: ingredientIds.map(id => ({
+          create: (ingredientIds || []).map(id => ({
             ingredient: { connect: { id } }
           }))
         }
-      },
-      include: {
-        ingredients: { include: { ingredient: true } }
       }
     });
 
-    const formattedStep = {
-      ...step,
-      ingredients: step.ingredients.map(si => si.ingredient)
-    };
-
-    res.status(201).json({ success: true, data: formattedStep });
+    res.status(201).json({ success: true, data: step });
   } catch (error: any) {
     if (error.name === "ZodError") {
       res.status(400).json({ success: false, errors: error.errors });
@@ -259,9 +265,7 @@ export const updateStep = async (req: Request, res: Response): Promise<void> => 
     const validatedData = updateIngredientStepSchema.parse(req.body);
     const { ingredientIds, ...stepData } = validatedData;
 
-    // Eğer ingredientIds geldiyse, mevcut bağları silip yenilerini kurmamız lazım
     if (ingredientIds) {
-      // Önce mevcutları sil
       await prisma.stepIngredient.deleteMany({
         where: { stepId: id }
       });
@@ -278,18 +282,10 @@ export const updateStep = async (req: Request, res: Response): Promise<void> => 
             }))
           }
         })
-      },
-      include: {
-        ingredients: { include: { ingredient: true } }
       }
     });
 
-    const formattedStep = {
-      ...step,
-      ingredients: step.ingredients.map(si => si.ingredient)
-    };
-
-    res.status(200).json({ success: true, data: formattedStep });
+    res.status(200).json({ success: true, data: step });
   } catch (error: any) {
     if (error.name === "ZodError") {
       res.status(400).json({ success: false, errors: error.errors });
