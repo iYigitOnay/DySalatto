@@ -169,33 +169,6 @@ export default function KitchenFilter({ brand, onFilterChange, categories }: Kit
                     </div>
                   </div>
                 ))}
-
-                {/* Specific Ingredients */}
-                <div className="space-y-6">
-                  <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Malzeme Tercihleri</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {ingredients.length > 0 ? (
-                      ingredients.map((ing: any) => (
-                        <button
-                          key={ing.id}
-                          onClick={() => toggleIngredient(ing.id)}
-                          className={cn(
-                            "flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-bold transition-all",
-                            filters.ingredients.includes(ing.id)
-                              ? accentColor
-                              : "bg-white/5 text-white/40 hover:bg-white/10"
-                          )}
-                        >
-                          <DynamicIcon iconName={ing.iconName || 'Wheat'} className="w-3 h-3" />
-                          {ing.name}
-                          {filters.ingredients.includes(ing.id) && <Check className="w-3 h-3 ml-1" />}
-                        </button>
-                      ))
-                    ) : (
-                      <p className="text-white/20 text-[10px] italic">Malzeme bulunamadı.</p>
-                    )}
-                  </div>
-                </div>
               </div>
 
               <div className="mt-12 flex justify-between items-center bg-white/[0.03] border-t border-white/5 -mx-6 -mb-6 px-6 py-4 md:py-6 rounded-b-[32px] min-h-[80px]">
