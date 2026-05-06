@@ -20,12 +20,36 @@ export const getTraitGroups = async (req: Request, res: Response): Promise<void>
         traits: true,
         categories: true
       },
-      orderBy: { createdAt: "desc" }
+      orderBy: { orderIndex: "asc" }
     });
 
     res.status(200).json({ success: true, data: groups });
   } catch (error) {
     res.status(500).json({ success: false, message: "Özellik grupları getirilirken hata oluştu." });
+  }
+};
+
+export const reorderTraitGroups = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { orders } = req.body; // Array<{ id: string, orderIndex: number }>
+
+    if (!Array.isArray(orders)) {
+      res.status(400).json({ success: false, message: "Geçersiz sıralama verisi." });
+      return;
+    }
+
+    await prisma.$transaction(
+      orders.map((o) =>
+        prisma.traitGroup.update({
+          where: { id: o.id },
+          data: { orderIndex: o.orderIndex },
+        })
+      )
+    );
+
+    res.status(200).json({ success: true, message: "Sıralama güncellendi." });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Sıralama güncellenirken hata oluştu." });
   }
 };
 

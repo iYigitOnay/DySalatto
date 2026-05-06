@@ -48,8 +48,7 @@ export default function KitchenFilter({ brand, onFilterChange, categories }: Kit
   });
 
   const ingredients = ingredientsData?.data || [];
-  const dietaryOptions = traitsData?.data?.flatMap((tg: any) => tg.traits.map((t: any) => t.name)) || [];
-  const uniqueDietaryOptions = Array.from(new Set(dietaryOptions)) as string[];
+  const traitGroups = traitsData?.data || [];
 
   const isCake = brand === 'cake';
   const accentColor = isCake ? 'bg-brand-sand text-[#110C08]' : 'bg-brand-terracotta text-white';
@@ -145,54 +144,56 @@ export default function KitchenFilter({ brand, onFilterChange, categories }: Kit
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden border-t border-white/5 pt-6"
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                {/* Dietary Tags */}
-                <div>
-                  <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mb-6">
-                    {filters.categoryId ? 'Bu Kategoriye Özel Tercihler' : 'Beslenme Tercihi'}
-                  </h4>
-                  <div className="flex flex-wrap gap-3">
-                    {uniqueDietaryOptions.length > 0 ? (
-                      uniqueDietaryOptions.map((tag) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+                {/* Dynamic Trait Groups */}
+                {traitGroups.map((group: any) => (
+                  <div key={group.id} className="space-y-6">
+                    <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">
+                      {group.name}
+                    </h4>
+                    <div className="flex flex-wrap gap-3">
+                      {group.traits.map((trait: any) => (
                         <button
-                          key={tag}
-                          onClick={() => toggleDietary(tag)}
+                          key={trait.id}
+                          onClick={() => toggleDietary(trait.name)}
                           className={cn(
                             "px-4 py-2.5 rounded-lg text-[10px] font-bold transition-all border",
-                            filters.dietary.includes(tag)
+                            filters.dietary.includes(trait.name)
                               ? accentBorder + " " + accentText + " bg-white/5"
                               : "border-white/5 text-white/40 hover:border-white/20"
                           )}
                         >
-                          {tag}
+                          {trait.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Specific Ingredients */}
+                <div className="space-y-6">
+                  <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Malzeme Tercihleri</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {ingredients.length > 0 ? (
+                      ingredients.map((ing: any) => (
+                        <button
+                          key={ing.id}
+                          onClick={() => toggleIngredient(ing.id)}
+                          className={cn(
+                            "flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-bold transition-all",
+                            filters.ingredients.includes(ing.id)
+                              ? accentColor
+                              : "bg-white/5 text-white/40 hover:bg-white/10"
+                          )}
+                        >
+                          <DynamicIcon iconName={ing.iconName || 'Wheat'} className="w-3 h-3" />
+                          {ing.name}
+                          {filters.ingredients.includes(ing.id) && <Check className="w-3 h-3 ml-1" />}
                         </button>
                       ))
                     ) : (
-                      <p className="text-white/20 text-[10px] italic">Bu kategori için özel filtre bulunmuyor.</p>
+                      <p className="text-white/20 text-[10px] italic">Malzeme bulunamadı.</p>
                     )}
-                  </div>
-                </div>
-
-                {/* Specific Ingredients */}
-                <div>
-                  <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] mb-6">İçerik Hassasiyeti (Spesifik)</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {ingredients.map((ing: any) => (
-                      <button
-                        key={ing.id}
-                        onClick={() => toggleIngredient(ing.id)}
-                        className={cn(
-                          "flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-bold transition-all",
-                          filters.ingredients.includes(ing.id)
-                            ? accentColor
-                            : "bg-white/5 text-white/40 hover:bg-white/10"
-                        )}
-                      >
-                        <DynamicIcon iconName={ing.iconName || 'Wheat'} className="w-3 h-3" />
-                        {ing.name}
-                        {filters.ingredients.includes(ing.id) && <Check className="w-3 h-3 ml-1" />}
-                      </button>
-                    ))}
                   </div>
                 </div>
               </div>

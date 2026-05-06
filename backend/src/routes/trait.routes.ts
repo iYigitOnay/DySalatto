@@ -5,7 +5,8 @@ import {
   updateTraitGroup,
   deleteTraitGroup,
   createTrait,
-  deleteTrait
+  deleteTrait,
+  reorderTraitGroups
 } from "../controllers/trait.controller";
 import { protect, restrictToAdmin } from "../middlewares/auth.middleware";
 
@@ -14,6 +15,7 @@ const router = Router();
 // Groups
 router.get("/groups", getTraitGroups);
 router.post("/groups", protect, restrictToAdmin, createTraitGroup);
+router.put("/groups/reorder", protect, restrictToAdmin, reorderTraitGroups);
 router.put("/groups/:id", protect, restrictToAdmin, updateTraitGroup);
 router.delete("/groups/:id", protect, restrictToAdmin, deleteTraitGroup);
 

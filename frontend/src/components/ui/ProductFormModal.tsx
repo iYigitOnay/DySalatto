@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Upload, Save, Check, Image as ImageIcon } from 'lucide-react';
+import { X, Upload, Save, Check, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '@/lib/api';
@@ -53,6 +53,22 @@ export default function ProductFormModal({ isOpen, onClose, brand, product }: Pr
   const categories = categoriesRes?.data || [];
   const traitGroups = traitGroupsRes?.data || [];
   const ingredients = ingredientsRes?.data || [];
+
+  const [openGroups, setOpenGroups] = useState<string[]>([]);
+
+  const toggleGroup = (groupId: string) => {
+    setOpenGroups(prev => 
+      prev.includes(groupId) ? prev.filter(id => id !== groupId) : [...prev, groupId]
+    );
+  };
+
+  const filteredTraitGroups = useMemo(() => {
+    if (!formData.categoryId) return [];
+    return traitGroups.filter((group: any) => 
+      group.categories.length === 0 || 
+      group.categories.some((c: any) => c.id === formData.categoryId)
+    );
+  }, [traitGroups, formData.categoryId]);
 
   useEffect(() => {
     if (product) {
@@ -219,28 +235,81 @@ export default function ProductFormModal({ isOpen, onClose, brand, product }: Pr
               <div className="space-y-8">
                 <div>
                   <label className="block text-[10px] font-black tracking-widest text-white/40 uppercase mb-4 text-brand-sand">Beslenme Özellikleri</label>
-                  <div className="space-y-6 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
-                    {traitGroups.map((group: any) => (
-                      <div key={group.id}>
-                        <p className="text-[9px] font-bold text-white/20 uppercase mb-2">{group.name}</p>
-                        <div className="flex flex-wrap gap-2">
-                          {group.traits.map((trait: any) => (
-                            <button key={trait.id} type="button" onClick={() => toggleItem(trait.id, 'traitIds')} className={cn("px-4 py-2 rounded-xl text-[10px] font-bold border transition-all flex items-center gap-2", formData.traitIds.includes(trait.id) ? "bg-white text-black border-white" : "bg-white/5 text-white/40 border-white/5 hover:border-white/20")}>
-                              {formData.traitIds.includes(trait.id) && <Check className="w-3 h-3" />}
-                              {trait.name}
+                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    {filteredTraitGroups.length === 0 ? (
+                      <p className="text-[10px] italic text-white/20 pl-2">Lütfen önce kategori seçiniz.</p>
+                    ) : (
+                      filteredTraitGroups.map((group: any) => {
+                        const isOpen = openGroups.includes(group.id);
+                        const selectedCount = group.traits.filter((t: any) => formData.traitIds.includes(t.id)).length;
+
+                        return (
+                          <div key={group.id} className="border border-white/5 rounded-2xl overflow-hidden bg-white/[0.02]">
+                            <button
+                              type="button"
+                              onClick={() => toggleGroup(group.id)}
+                              className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-all"
+                            >
+                              <div className="flex items-center gap-3">
+                                <p className="text-[10px] font-black text-white/60 uppercase tracking-widest">{group.name}</p>
+                                {selectedCount > 0 && (
+                                  <span className="bg-brand-sand text-black text-[8px] font-black px-1.5 py-0.5 rounded-full">{selectedCount}</span>
+                                )}
+                              </div>
+                              {isOpen ? <ChevronUp className="w-3 h-3 text-white/20" /> : <ChevronDown className="w-3 h-3 text-white/20" />}
                             </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
+
+                            <AnimatePresence>
+                              {isOpen && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="p-4 pt-0 flex flex-wrap gap-2">
+                                    {group.traits.map((trait: any) => (
+                                      <button 
+                                        key={trait.id} 
+                                        type="button" 
+                                        onClick={() => toggleItem(trait.id, 'traitIds')} 
+                                        className={cn(
+                                          "px-3 py-1.5 rounded-lg text-[9px] font-bold border transition-all flex items-center gap-2", 
+                                          formData.traitIds.includes(trait.id) 
+                                            ? "bg-white text-black border-white" 
+                                            : "bg-white/5 text-white/40 border-white/5 hover:border-white/20"
+                                        )}
+                                      >
+                                        {formData.traitIds.includes(trait.id) && <Check className="w-2.5 h-2.5" />}
+                                        {trait.name}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-[10px] font-black tracking-widest text-white/40 uppercase mb-4 text-brand-terracotta">Standart İçindekiler (Reçete)</label>
-                  <div className="flex flex-wrap gap-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="flex flex-wrap gap-2 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar p-1">
                     {ingredients.map((ing: any) => (
-                      <button key={ing.id} type="button" onClick={() => toggleItem(ing.id, 'ingredientIds')} className={cn("px-3 py-2 rounded-lg text-[10px] font-bold border transition-all flex items-center gap-2", formData.ingredientIds.includes(ing.id) ? "bg-white/20 text-white border-white/40" : "bg-white/5 text-white/30 border-white/5 hover:border-white/10")}>
+                      <button 
+                        key={ing.id} 
+                        type="button" 
+                        onClick={() => toggleItem(ing.id, 'ingredientIds')} 
+                        className={cn(
+                          "px-3 py-2 rounded-xl text-[10px] font-bold border transition-all flex items-center gap-2", 
+                          formData.ingredientIds.includes(ing.id) 
+                            ? "bg-brand-terracotta text-white border-brand-terracotta" 
+                            : "bg-white/5 text-white/30 border-white/5 hover:border-white/10"
+                        )}
+                      >
                         {ing.name}
                       </button>
                     ))}
