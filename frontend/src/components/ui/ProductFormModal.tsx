@@ -19,7 +19,7 @@ export default function ProductFormModal({ isOpen, onClose, brand, product }: Pr
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const dbBrand = brand === 'salatto' ? 'DYSALATTO' : 'DYCAKE';
+  const dbBrand = (brand === 'salatto' || brand === 'dysalatto') ? 'DYSALATTO' : 'DYCAKE';
 
   const [formData, setFormData] = useState({
     name: '',

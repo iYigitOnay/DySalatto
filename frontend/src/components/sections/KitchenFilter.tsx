@@ -39,7 +39,7 @@ export default function KitchenFilter({ brand, onFilterChange, categories }: Kit
 
   const { data: ingredientsData } = useQuery({
     queryKey: ['ingredients', brand],
-    queryFn: () => fetchApi(`/ingredients?brand=${brand === 'salatto' ? 'DYSALATTO' : 'DYCAKE'}`)
+    queryFn: () => fetchApi(`/ingredients?brand=${(brand === 'salatto' || brand === 'dysalatto') ? 'DYSALATTO' : 'DYCAKE'}`)
   });
 
   const { data: traitsData } = useQuery({

@@ -14,7 +14,7 @@ export interface Product {
   price: string | number;
   image?: string;
   brand: string;
-  category?: string;
+  category?: string | any;
 }
 
 export interface CartItem {

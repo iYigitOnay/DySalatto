@@ -4,13 +4,14 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingBag, X, Plus, Minus, ArrowRight, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 
 const FloatingCart = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const isCakePage = pathname?.startsWith("/cake");
 
   const { items, updateQuantity, removeItem, getTotalPrice, getTotalItems } = useCartStore();
@@ -134,7 +135,7 @@ const FloatingCart = () => {
                         </p>
                       ) : (
                         <p className="text-white/30 text-[11px] mb-4">
-                          {item.product?.category || "Menü"}
+                          {(item.product?.category as any)?.name || item.product?.category || "Menü"}
                         </p>
                       )}
 
@@ -184,6 +185,10 @@ const FloatingCart = () => {
                 </div>
 
                 <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    router.push('/odeme');
+                  }}
                   className={cn(
                     "w-full py-5 rounded-2xl font-black text-xs tracking-[0.2em] uppercase flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-2xl",
                     accentColor,

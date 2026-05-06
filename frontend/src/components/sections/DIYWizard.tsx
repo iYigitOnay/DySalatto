@@ -29,7 +29,7 @@ export default function DIYWizard({ brand }: DIYWizardProps) {
   const { addItem } = useCartStore();
   const { showToast } = useToast();
 
-  const mappedBrand = brand === 'salatto' ? 'DYSALATTO' : 'DYCAKE';
+  const mappedBrand = (brand === 'salatto' || brand === 'dysalatto') ? 'DYSALATTO' : 'DYCAKE';
 
   const { data: stepsRes, isLoading } = useQuery({
     queryKey: ['diy-steps', brand],
