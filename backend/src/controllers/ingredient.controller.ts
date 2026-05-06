@@ -4,18 +4,119 @@ import {
   ingredientSchema, 
   updateIngredientSchema,
   ingredientStepSchema,
-  updateIngredientStepSchema
+  updateIngredientStepSchema,
+  ingredientCategorySchema
 } from "../schemas/ingredient.schema";
 import { Brand } from "@prisma/client";
+
+// --- INGREDIENT CATEGORIES (MALZEME KATEGORİLERİ) ---
+
+export const getIngredientCategories = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { brand } = req.query;
+    
+    const categories = await prisma.ingredientCategory.findMany({
+      where: brand ? { brand: brand as Brand } : undefined,
+      include: {
+        ingredients: true
+      },
+      orderBy: { orderIndex: "asc" }
+    });
+
+    res.status(200).json({ success: true, data: categories });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Malzeme kategorileri getirilirken hata oluştu." });
+  }
+};
+
+export const createIngredientCategory = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const validatedData = ingredientCategorySchema.parse(req.body);
+
+    const category = await prisma.ingredientCategory.create({
+      data: validatedData
+    });
+
+    res.status(201).json({ success: true, data: category });
+  } catch (error: any) {
+    if (error.name === "ZodError") {
+      res.status(400).json({ success: false, errors: error.errors });
+      return;
+    }
+    res.status(500).json({ success: false, message: "Kategori oluşturulurken hata oluştu." });
+  }
+};
+
+export const updateIngredientCategory = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const validatedData = ingredientCategorySchema.partial().parse(req.body);
+
+    const category = await prisma.ingredientCategory.update({
+      where: { id },
+      data: validatedData
+    });
+
+    res.status(200).json({ success: true, data: category });
+  } catch (error: any) {
+    if (error.name === "ZodError") {
+      res.status(400).json({ success: false, errors: error.errors });
+      return;
+    }
+    res.status(500).json({ success: false, message: "Kategori güncellenirken hata oluştu." });
+  }
+};
+
+export const deleteIngredientCategory = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    await prisma.ingredientCategory.delete({ where: { id } });
+    res.status(200).json({ success: true, message: "Kategori silindi." });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Kategori silinirken hata oluştu." });
+  }
+};
+
+export const reorderIngredientCategories = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { orders } = req.body;
+
+    if (!Array.isArray(orders)) {
+      res.status(400).json({ success: false, message: "Geçersiz sıralama verisi." });
+      return;
+    }
+
+    await prisma.$transaction(
+      orders.map((o) =>
+        prisma.ingredientCategory.update({
+          where: { id: o.id },
+          data: { orderIndex: o.orderIndex },
+        })
+      )
+    );
+
+    res.status(200).json({ success: true, message: "Sıralama güncellendi." });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Sıralama güncellenirken hata oluştu." });
+  }
+};
 
 // --- INGREDIENTS (MALZEMELER) ---
 
 export const getIngredients = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { brand } = req.query;
+    const { brand, categoryId } = req.query;
     
     const ingredients = await prisma.ingredient.findMany({
-      where: brand ? { brand: brand as Brand } : undefined,
+      where: {
+        AND: [
+          brand ? { brand: brand as Brand } : {},
+          categoryId ? { categoryId: categoryId as string } : {}
+        ]
+      },
+      include: {
+        category: true
+      },
       orderBy: { createdAt: "desc" }
     });
 

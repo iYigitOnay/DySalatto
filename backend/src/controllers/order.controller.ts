@@ -63,10 +63,11 @@ export const createOrder = async (req: Request, res: Response) => {
           const orderItem = await tx.orderItem.create({
             data: {
               subOrderId: subOrder.id,
-              productId: item.isCustom ? null : item.id,
+              productId: item.isCustom ? (item.productId || null) : item.id,
               isCustom: item.isCustom || false,
               quantity: item.quantity,
               priceAtTime: Number(item.price),
+              removedIngredients: item.removedIngredients ? JSON.stringify(item.removedIngredients) : null,
             },
           });
 

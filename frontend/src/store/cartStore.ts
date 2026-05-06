@@ -5,7 +5,7 @@ export interface Ingredient {
   id: string;
   name: string;
   price: string | number;
-  category?: string;
+  category?: any;
 }
 
 export interface Product {
@@ -18,57 +18,65 @@ export interface Product {
 }
 
 export interface CartItem {
-  id: string; // Product ID or unique ID for custom items
-  product?: Product;
-  isCustom?: boolean;
+  id: string; // Unique ID for each item in cart (can be productId or a random string for custom items)
+  productId?: string;
   name: string;
-  brand: string;
-  ingredients?: Ingredient[];
-  price: number;
+  price: number | string;
   quantity: number;
   image?: string;
+  brand: string;
+  isCustom: boolean;
+  ingredients?: Ingredient[];
+  removedIngredients?: string[]; // IDs of ingredients removed from standard recipe
+  product?: Product; // Reference to original product details
 }
 
-interface CartState {
+interface CartStore {
   items: CartItem[];
-  addItem: (item: Omit<CartItem, 'quantity'>) => void;
-  updateQuantity: (id: string, delta: number) => void;
-  removeItem: (id: string) => void;
+  addItem: (item: CartItem) => void;
+  removeItem: (cartItemId: string) => void;
+  updateQuantity: (cartItemId: string, quantity: number) => void;
   clearCart: () => void;
   getTotalPrice: () => number;
   getTotalItems: () => number;
 }
 
-export const useCartStore = create<CartState>()(
+export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
       items: [],
       addItem: (newItem) => {
         set((state) => {
-          // Custom ürünler her zaman yeni bir kalem olarak eklenebilir veya 
-          // eğer içerikleri birebir aynıysa adet artırılabilir. 
-          // Şimdilik ID üzerinden gidiyoruz (DIY'da unique ID üreteceğiz).
-          const existingItemIndex = state.items.findIndex((item) => item.id === newItem.id);
+          // If it's a custom item (DIY or Customized Ready-made), always add as new item
+          if (newItem.isCustom) {
+            return { items: [...state.items, { ...newItem, id: Math.random().toString(36).substr(2, 9) }] };
+          }
+
+          // For standard products, check if already in cart
+          const existingItemIndex = state.items.findIndex(
+            (item) => !item.isCustom && item.productId === newItem.productId
+          );
+
           if (existingItemIndex > -1) {
             const updatedItems = [...state.items];
-            updatedItems[existingItemIndex].quantity += 1;
+            updatedItems[existingItemIndex].quantity += newItem.quantity;
             return { items: updatedItems };
           }
-          return { items: [...state.items, { ...newItem, quantity: 1 }] };
+
+          return { items: [...state.items, newItem] };
         });
-      },
-      updateQuantity: (id, delta) => {
-        set((state) => ({
-          items: state.items
-            .map((item) =>
-              item.id === id ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item
-            )
-            .filter((item) => item.quantity > 0),
-        }));
       },
       removeItem: (id) => {
         set((state) => ({
           items: state.items.filter((item) => item.id !== id),
+        }));
+      },
+      updateQuantity: (id, quantity) => {
+        if (quantity < 1) return;
+        set((state) => ({
+          items: state.items.map((item) =>
+            item.id === id ? { ...item, quantity } : item
+          ),
         }));
       },
       clearCart: () => set({ items: [] }),

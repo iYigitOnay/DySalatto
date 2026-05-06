@@ -1,13 +1,14 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Leaf, ShieldAlert, Edit2, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Plus, Leaf, ShieldAlert, Edit2, Trash2, Eye, EyeOff, Info } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchApi } from '@/lib/api';
 import { useToast } from '@/components/ui/ToastProvider';
+import ProductCustomizerModal from '../ui/ProductCustomizerModal';
 
 interface KitchenProductCardProps {
   product: any;
@@ -24,6 +25,7 @@ const DynamicIcon = ({ iconName, className }: { iconName?: string, className?: s
 export default function KitchenProductCard({ product, onAddToCart, onEdit }: KitchenProductCardProps) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
 
   const brand = product.brand?.toLowerCase() || '';
   const isCake = brand === 'cake' || brand === 'dycake';
@@ -155,7 +157,7 @@ export default function KitchenProductCard({ product, onAddToCart, onEdit }: Kit
             {price} TL
           </div>
           <button 
-            onClick={() => onAddToCart(product)}
+            onClick={() => setIsCustomizerOpen(true)}
             disabled={isHidden}
             className={cn(
               "flex items-center gap-3 px-6 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-xl group/btn",
@@ -164,11 +166,18 @@ export default function KitchenProductCard({ product, onAddToCart, onEdit }: Kit
               isHidden && "opacity-20 cursor-not-allowed"
             )}
           >
-            {isHidden ? 'TÜKENDİ' : 'SEPETE EKLE'}
+            {isHidden ? 'TÜKENDİ' : 'İNCELE & EKLE'}
             {!isHidden && <Plus className="w-4 h-4 transition-transform group-hover/btn:rotate-90" />}
           </button>
         </div>
       </div>
+
+      <ProductCustomizerModal 
+        isOpen={isCustomizerOpen}
+        onClose={() => setIsCustomizerOpen(false)}
+        product={product}
+        brand={brand as any}
+      />
     </motion.div>
   );
 }

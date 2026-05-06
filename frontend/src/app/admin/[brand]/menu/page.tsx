@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { 
   Trash2, Tag, Layers, GripVertical, CheckSquare, Square, 
   Plus, Filter, Hash, Globe, MousePointer2, Settings2, X,
-  ChevronRight, LayoutGrid
+  ChevronRight, LayoutGrid, RefreshCw
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";

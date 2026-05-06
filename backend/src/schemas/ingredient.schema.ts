@@ -1,18 +1,21 @@
 import { z } from "zod";
 import { Brand } from "@prisma/client";
 
+export const ingredientCategorySchema = z.object({
+  brand: z.nativeEnum(Brand),
+  name: z.string().min(2, "Kategori adı en az 2 karakter olmalıdır."),
+  orderIndex: z.number().int().min(0).optional().default(0),
+});
+
 export const ingredientSchema = z.object({
   brand: z.nativeEnum(Brand),
   name: z.string().min(2, "Malzeme adı en az 2 karakter olmalıdır."),
   price: z.number().min(0, "Fiyat 0'dan küçük olamaz.").optional().default(0),
   isStock: z.boolean().optional().default(true),
+  categoryId: z.string().uuid("Geçersiz kategori ID'si.").optional(),
 });
 
-export const updateIngredientSchema = z.object({
-  name: z.string().min(2, "Malzeme adı en az 2 karakter olmalıdır.").optional(),
-  price: z.number().min(0, "Fiyat 0'dan küçük olamaz.").optional(),
-  isStock: z.boolean().optional(),
-});
+export const updateIngredientSchema = ingredientSchema.partial().omit({ brand: true });
 
 export const ingredientStepSchema = z.object({
   brand: z.nativeEnum(Brand),

@@ -103,17 +103,28 @@ model ProductTrait {
 }
 
 model Ingredient {
-  id         String                @id @default(uuid())
-  brand      Brand
-  name       String
-  price      Decimal               @db.Decimal(10, 2)
-  isStock    Boolean               @default(true)
-  createdAt  DateTime              @default(now())
-  updatedAt  DateTime              @updatedAt
-  category   String                @default("Genel")
-  orderItems OrderItemIngredient[]
-  products   ProductIngredient[]
-  steps      StepIngredient[]
+  id           String                @id @default(uuid())
+  brand        Brand
+  name         String
+  price        Decimal               @db.Decimal(10, 2)
+  isStock      Boolean               @default(true)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  categoryId   String?
+  category     IngredientCategory?   @relation(fields: [categoryId], references: [id])
+  orderItems   OrderItemIngredient[]
+  products     ProductIngredient[]
+  steps        StepIngredient[]
+}
+
+model IngredientCategory {
+  id          String       @id @default(uuid())
+  brand       Brand
+  name        String
+  orderIndex  Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  ingredients Ingredient[]
 }
 
 model ProductIngredient {
@@ -183,6 +194,7 @@ model OrderItem {
   subOrderId          String
   isCustom            Boolean               @default(false)
   productId           String?
+  removedIngredients  Json?                 // List of ingredient IDs removed from recipe
   product             Product?              @relation(fields: [productId], references: [id])
   subOrder            SubOrder              @relation(fields: [subOrderId], references: [id], onDelete: Cascade)
   selectedIngredients OrderItemIngredient[]

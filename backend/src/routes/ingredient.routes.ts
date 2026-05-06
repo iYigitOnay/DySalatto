@@ -7,11 +7,23 @@ import {
   getSteps,
   createStep,
   updateStep,
-  deleteStep
+  deleteStep,
+  getIngredientCategories,
+  createIngredientCategory,
+  updateIngredientCategory,
+  deleteIngredientCategory,
+  reorderIngredientCategories
 } from "../controllers/ingredient.controller";
 import { protect, restrictToAdmin } from "../middlewares/auth.middleware";
 
 const router = Router();
+
+// --- INGREDIENT CATEGORIES ---
+router.get("/categories", getIngredientCategories);
+router.post("/categories", protect, restrictToAdmin, createIngredientCategory);
+router.put("/categories/reorder", protect, restrictToAdmin, reorderIngredientCategories);
+router.put("/categories/:id", protect, restrictToAdmin, updateIngredientCategory);
+router.delete("/categories/:id", protect, restrictToAdmin, deleteIngredientCategory);
 
 // --- INGREDIENTS ---
 router.get("/", getIngredients);
