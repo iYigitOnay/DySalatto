@@ -173,6 +173,94 @@ export const updateSubOrderStatus = async (req: Request, res: Response): Promise
   }
 };
 
+export const getFinanceStats = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { brand } = req.query;
+    if (!brand) {
+      res.status(400).json({ success: false, message: "Marka parametresi gereklidir." });
+      return;
+    }
+
+    const dbBrand = brand as any;
+
+    // 1. Toplam Gelir ve Sipariş Sayısı (SubOrders üzerinden)
+    const stats = await prisma.subOrder.aggregate({
+      where: { 
+        brand: dbBrand,
+        status: { not: "CANCELLED" }
+      },
+      _sum: { totalAmount: true },
+      _count: { id: true }
+    });
+
+    // 2. Bugünlük Gelir
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStats = await prisma.subOrder.aggregate({
+      where: {
+        brand: dbBrand,
+        status: { not: "CANCELLED" },
+        createdAt: { gte: today }
+      },
+      _sum: { totalAmount: true }
+    });
+
+    // 3. En Popüler 5 Ürün
+    const popularProducts = await prisma.orderItem.groupBy({
+      by: ['productId'],
+      where: {
+        subOrder: { brand: dbBrand },
+        productId: { not: null }
+      },
+      _count: { id: true },
+      orderBy: { _count: { id: 'desc' } },
+      take: 5
+    });
+
+    // Ürün isimlerini de alalım
+    const popularWithDetails = await Promise.all(
+      popularProducts.map(async (p) => {
+        const product = await prisma.product.findUnique({
+          where: { id: p.productId! },
+          select: { name: true }
+        });
+        return { name: product?.name || "Bilinmeyen Ürün", count: p._count.id };
+      })
+    );
+
+    // 4. Son Satışlar (Timeline için)
+    const recentSales = await prisma.subOrder.findMany({
+      where: { brand: dbBrand },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      include: {
+        order: { select: { orderNumber: true, user: { select: { name: true } } } }
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalRevenue: Number(stats._sum.totalAmount || 0),
+        totalOrders: stats._count.id,
+        todayRevenue: Number(todayStats._sum.totalAmount || 0),
+        popularProducts: popularWithDetails,
+        recentSales: recentSales.map(s => ({
+          id: s.id,
+          orderNo: s.order.orderNumber,
+          customer: s.order.user.name,
+          amount: Number(s.totalAmount),
+          date: s.createdAt,
+          status: s.status
+        }))
+      }
+    });
+  } catch (error) {
+    console.error("Finance stats error:", error);
+    res.status(500).json({ success: false, message: "Finansal veriler getirilemedi." });
+  }
+};
+
 export const getMyOrders = async (req: Request, res: Response) => {
   try {
     const orders = await prisma.order.findMany({
