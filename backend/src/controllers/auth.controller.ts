@@ -9,6 +9,12 @@ import { sendEmail } from "../services/mail.service";
 const THEME_COLOR = "#e91e63"; // DySalatto/Cake için pembe/fuşya tonu
 
 const sendVerificationEmail = async (email: string, name: string, code: string) => {
+  // TEST İÇİN TERMİNALE YAZDIR
+  console.log("------------------------------------------");
+  console.log(`📧 DOĞRULAMA MAİLİ: ${email}`);
+  console.log(`🔑 KOD: ${code}`);
+  console.log("------------------------------------------");
+
   await sendEmail(
     email,
     "DySalatto'ya Hoş Geldiniz - Doğrulama Kodunuz",
@@ -247,6 +253,11 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
     });
 
     const resetLink = `${process.env.FRONTEND_URL}/auth/reset-password?token=${resetToken}&email=${email}`;
+
+    console.log("------------------------------------------");
+    console.log(`📧 ŞİFRE SIFIRLAMA MAİLİ GÖNDERİLİYOR: ${email}`);
+    console.log(`🔗 LİNK: ${resetLink}`);
+    console.log("------------------------------------------");
 
     await sendEmail(
       email,
