@@ -381,7 +381,7 @@ export default function Navbar() {
               )}
 
               <div className="flex items-center h-10 shrink-0 min-w-[120px] justify-end">
-                <Link href={isCakePage ? "/cake/mutfagimiz" : "/salatto/mutfagimiz"}>
+                <Link href={user ? (isCakePage ? "/cake/mutfagimiz" : "/salatto/mutfagimiz") : "/auth"}>
                   <WetPaintButton
                     isScrolled={isScrolled}
                     className="whitespace-nowrap"
