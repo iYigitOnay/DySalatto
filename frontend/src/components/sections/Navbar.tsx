@@ -268,8 +268,8 @@ export default function Navbar() {
                     className="flex items-center gap-2 group h-10 px-3 rounded-full hover:bg-white/5 transition-colors border border-transparent hover:border-white/10"
                   >
                     <div className={cn(
-                      "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black text-white",
-                      isCakePage ? "bg-brand-terracotta" : "bg-brand-sage"
+                      "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black",
+                      isCakePage ? "bg-brand-sand text-brand-charcoal" : "bg-brand-terracotta text-white"
                     )}>
                       {user.name.charAt(0).toUpperCase()}
                     </div>

@@ -346,29 +346,87 @@ export const updateProfile = async (req: any, res: Response): Promise<void> => {
     const { name, email } = req.body;
     const userId = req.user.id;
 
-    // E-posta değişmişse, başka bir kullanıcı tarafından kullanılıyor mu?
-    if (email) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      res.status(404).json({ success: false, message: "Kullanıcı bulunamadı." });
+      return;
+    }
+
+    let needsVerification = false;
+    let newVerificationCode = null;
+
+    // E-posta değişmişse kontrol et
+    if (email && email !== user.email) {
       const existingUser = await prisma.user.findUnique({ where: { email } });
-      if (existingUser && existingUser.id !== userId) {
+      if (existingUser) {
         res.status(400).json({ success: false, message: "Bu e-posta adresi zaten kullanımda." });
         return;
       }
+      needsVerification = true;
+      newVerificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     }
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { name, email },
+      data: { 
+        name, 
+        email,
+        isVerified: needsVerification ? false : user.isVerified,
+        verificationCode: needsVerification ? newVerificationCode : user.verificationCode
+      },
       select: {
         id: true,
         email: true,
         name: true,
         role: true,
+        isVerified: true
       },
     });
 
-    res.status(200).json({ success: true, data: updatedUser });
+    if (needsVerification && newVerificationCode) {
+      await sendVerificationEmail(email, name || user.name, newVerificationCode);
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      data: updatedUser,
+      requiresVerification: needsVerification,
+      message: needsVerification 
+        ? "Profil güncellendi. Lütfen yeni e-posta adresinize gönderilen kodu doğrulayın." 
+        : "Profil bilgileriniz güncellendi."
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: "Profil güncellenemedi." });
+  }
+};
+
+export const changePassword = async (req: any, res: Response): Promise<void> => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.id;
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      res.status(404).json({ success: false, message: "Kullanıcı bulunamadı." });
+      return;
+    }
+
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isPasswordValid) {
+      res.status(400).json({ success: false, message: "Mevcut şifreniz hatalı." });
+      return;
+    }
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedNewPassword }
+    });
+
+    res.status(200).json({ success: true, message: "Şifreniz başarıyla değiştirildi." });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Şifre değiştirme sırasında bir hata oluştu." });
   }
 };
 

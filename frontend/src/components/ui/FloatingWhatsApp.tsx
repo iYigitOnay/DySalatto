@@ -55,8 +55,7 @@ const FloatingWhatsApp = () => {
             className="absolute right-full overflow-hidden pr-4 z-10 hidden md:block"
           >
             <span className={cn(
-              "text-[10px] font-black tracking-[0.3em] uppercase whitespace-nowrap transition-colors duration-500",
-              isCakePage ? "text-brand-terracotta" : "text-[#25D366]"
+              "text-[10px] font-black tracking-[0.3em] uppercase whitespace-nowrap transition-colors duration-500 text-[#25D366]"
             )}>
               BİZE ULAŞIN
             </span>
