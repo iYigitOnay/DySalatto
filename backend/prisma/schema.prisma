@@ -17,6 +17,10 @@ model User {
   refreshToken String?
   lastLogin    DateTime?
   isActive     Boolean   @default(true)
+  isVerified Boolean @default(false)
+  verificationCode String?
+  passwordResetCode String?
+  passwordResetExpires DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   addresses    Address[]

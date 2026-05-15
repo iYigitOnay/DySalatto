@@ -1,23 +1,39 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, ArrowRight, Star, User, ShoppingBag, ShieldCheck, Eye, EyeOff, CheckCircle2, Circle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Star, User, ShoppingBag, ShieldCheck, Eye, EyeOff, CheckCircle2, Circle, Mail, Lock, RefreshCcw } from 'lucide-react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 const AuthPage = () => {
-  const [mode, setMode] = useState<'selection' | 'login' | 'register'>('selection');
+  const searchParams = useSearchParams();
+  const [mode, setMode] = useState<'selection' | 'login' | 'register' | 'verify' | 'forgotPassword' | 'resetPassword'>('selection');
   const [showPassword, setShowPassword] = useState(false);
   
   // Form States
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [resetToken, setResetToken] = useState('');
   
   // Status States
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Check for reset token on mount
+  useEffect(() => {
+    const token = searchParams.get('token');
+    const emailParam = searchParams.get('email');
+    if (token && emailParam) {
+      setMode('resetPassword');
+      setResetToken(token);
+      setEmail(emailParam);
+    }
+  }, [searchParams]);
 
   const requirements = [
     { label: 'En az 6 karakter', met: password.length >= 6 },
@@ -25,29 +41,51 @@ const AuthPage = () => {
     { label: 'En az 1 özel karakter', met: /[!@#$%^&*(),.?":{}|<>]/.test(password) },
   ];
 
-  const handleModeChange = (newMode: 'selection' | 'login' | 'register') => {
+  const handleModeChange = (newMode: 'selection' | 'login' | 'register' | 'verify' | 'forgotPassword' | 'resetPassword') => {
     setMode(newMode);
     setShowPassword(false);
-    setEmail('');
-    setPassword('');
-    setName('');
     setError('');
+    setSuccessMessage('');
+    if (newMode !== 'verify' && newMode !== 'resetPassword') {
+      setEmail('');
+      setPassword('');
+      setName('');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
     setLoading(true);
 
     try {
-      const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
-      
-      // Eğer kullanıcı adı girilmediyse email'in @ işaretine kadar olan kısmını isim yapıyoruz.
-      const body = mode === 'login' 
-        ? { email, password }
-        : { email, password, name: name || email.split('@')[0] };
+      let endpoint = '';
+      let body = {};
 
-      // Backend'in 3001 portunda çalıştığını varsayarak istek atıyoruz
+      switch (mode) {
+        case 'login':
+          endpoint = '/api/auth/login';
+          body = { email, password };
+          break;
+        case 'register':
+          endpoint = '/api/auth/register';
+          body = { email, password, name: name || email.split('@')[0] };
+          break;
+        case 'verify':
+          endpoint = '/api/auth/verify-email';
+          body = { email, code: verificationCode.trim() };
+          break;
+        case 'forgotPassword':
+          endpoint = '/api/auth/forgot-password';
+          body = { email };
+          break;
+        case 'resetPassword':
+          endpoint = '/api/auth/reset-password';
+          body = { email, token: resetToken, newPassword: password };
+          break;
+      }
+
       const response = await fetch(`http://localhost:3001${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -58,23 +96,56 @@ const AuthPage = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        // Eğer backend hata döndürdüyse
+        if (data.requiresVerification) {
+          setError(data.message);
+          setEmail(data.email);
+          setMode('verify');
+          return;
+        }
         setError(data.message || data.errors?.[0]?.message || 'Bir hata oluştu.');
         return;
       }
 
-      // Başarılı senaryo
+      // Success Logic
       if (mode === 'register') {
-        alert('Kayıt başarılı! Lütfen giriş yapınız.');
-        setMode('login'); // handleModeChange kullanmıyoruz ki şifre ve mail silinmesin
+        setSuccessMessage('Kayıt başarılı! Lütfen mailinize gelen kodu girin.');
+        setMode('verify');
+      } else if (mode === 'verify') {
+        setSuccessMessage('Hesabınız doğrulandı! Şimdi giriş yapabilirsiniz.');
+        setMode('login');
+      } else if (mode === 'forgotPassword') {
+        setSuccessMessage('Şifre sıfırlama bağlantısı mail adresinize gönderildi.');
+      } else if (mode === 'resetPassword') {
+        setSuccessMessage('Şifreniz güncellendi. Yeni şifrenizle giriş yapabilirsiniz.');
+        setMode('login');
       } else {
-        // Herkesi (Admin dahil) ana sayfaya yönlendiriyoruz.
-        // Admin panele geçiş, ana sayfadaki profil menüsünden yapılacak.
         window.location.href = '/';
       }
 
     } catch (err) {
       setError('Sunucuya bağlanılamadı. Lütfen backendin (3001 portunda) çalıştığından emin olun.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (!email) return setError('Email adresi bulunamadı.');
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:3001/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setSuccessMessage('Yeni kod başarıyla gönderildi.');
+      } else {
+        setError(data.message || 'Kod gönderilemedi.');
+      }
+    } catch (err) {
+      setError('Bağlantı hatası.');
     } finally {
       setLoading(false);
     }
@@ -126,7 +197,7 @@ const AuthPage = () => {
               >
                 {/* Left: Guest Entry */}
                 <div 
-                  onClick={() => {/* Navigate to menu */}}
+                  onClick={() => window.location.href = '/'}
                   className="flex-1 p-12 md:p-16 flex flex-col justify-between group cursor-pointer hover:bg-white/[0.01] transition-colors relative border-b md:border-b-0 md:border-r border-white/5"
                 >
                   <div className="relative z-10">
@@ -198,68 +269,107 @@ const AuthPage = () => {
 
                 <div className="max-w-md w-full">
                   <div className="w-16 h-16 rounded-3xl bg-brand-terracotta/10 flex items-center justify-center mb-6 mx-auto border border-brand-terracotta/20 shadow-[0_0_30px_rgba(211,84,0,0.1)]">
-                    {mode === 'login' ? <User className="w-6 h-6 text-brand-terracotta" /> : <Star className="w-6 h-6 text-brand-terracotta" />}
+                    {mode === 'login' && <User className="w-6 h-6 text-brand-terracotta" />}
+                    {mode === 'register' && <Star className="w-6 h-6 text-brand-terracotta" />}
+                    {mode === 'verify' && <ShieldCheck className="w-6 h-6 text-brand-terracotta" />}
+                    {mode === 'forgotPassword' && <Mail className="w-6 h-6 text-brand-terracotta" />}
+                    {mode === 'resetPassword' && <Lock className="w-6 h-6 text-brand-terracotta" />}
                   </div>
                   
                   <h2 className="text-4xl md:text-5xl font-serif text-white italic mb-4 leading-tight">
-                    {mode === 'login' ? 'Tekrar Hoş Geldiniz' : 'Aramıza Katılın'}
+                    {mode === 'login' && 'Tekrar Hoş Geldiniz'}
+                    {mode === 'register' && 'Aramıza Katılın'}
+                    {mode === 'verify' && 'Hesabınızı Doğrulayın'}
+                    {mode === 'forgotPassword' && 'Şifremi Unuttum'}
+                    {mode === 'resetPassword' && 'Yeni Şifre Belirleyin'}
                   </h2>
                   <p className="text-white/40 text-sm mb-6 max-w-[280px] mx-auto leading-relaxed">
-                    {mode === 'login' ? 'Sanat dolu bir öğün için kaldığınız yerden devam edin.' : 'Kayıt olun ve ilk siparişinize özel %15 indirimi kapın.'}
+                    {mode === 'login' && 'Sanat dolu bir öğün için kaldığınız yerden devam edin.'}
+                    {mode === 'register' && 'Kayıt olun ve ilk siparişinize özel %15 indirimi kapın.'}
+                    {mode === 'verify' && `${email} adresine gönderilen 6 haneli kodu giriniz.`}
+                    {mode === 'forgotPassword' && 'Şifrenizi sıfırlamak için kayıtlı e-posta adresinizi girin.'}
+                    {mode === 'resetPassword' && 'Lütfen hatırlayabileceğiniz güçlü bir şifre seçiniz.'}
                   </p>
 
-                  {/* HATA MESAJI */}
+                  {/* MESAJLAR */}
                   {error && (
-                    <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-left">
+                    <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-left flex items-center gap-3">
+                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
                       {error}
+                    </div>
+                  )}
+                  {successMessage && (
+                    <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-sm text-left flex items-center gap-3">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                      {successMessage}
                     </div>
                   )}
 
                   <form onSubmit={handleSubmit} className="space-y-5 text-left">
-                    {/* Sadece Kayıt modunda Ad Soyad Göster */}
+                    {/* MODA GÖRE INPUTLAR */}
+                    
                     {mode === 'register' && (
-                       <div className="group relative">
-                         <input 
-                           type="text" 
-                           value={name}
-                           onChange={(e) => setName(e.target.value)}
-                           placeholder="Adınız Soyadınız (Opsiyonel)" 
-                           className="w-full bg-white/[0.06] border border-white/10 rounded-2xl py-5 px-6 text-white text-sm focus:outline-none focus:border-brand-terracotta/50 focus:bg-white/[0.08] transition-all placeholder:text-white/30" 
-                         />
-                       </div>
+                      <div className="group relative">
+                        <input 
+                          type="text" 
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          placeholder="Adınız Soyadınız (Opsiyonel)" 
+                          className="w-full bg-white/[0.06] border border-white/10 rounded-2xl py-5 px-6 text-white text-sm focus:outline-none focus:border-brand-terracotta/50 focus:bg-white/[0.08] transition-all placeholder:text-white/30" 
+                        />
+                      </div>
                     )}
 
-                    <div className="group relative">
-                      <input 
-                        type="email" 
-                        required 
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="E-Posta Adresiniz" 
-                        className="w-full bg-white/[0.06] border border-white/10 rounded-2xl py-5 px-6 text-white text-sm focus:outline-none focus:border-brand-terracotta/50 focus:bg-white/[0.08] transition-all placeholder:text-white/30" 
-                      />
-                    </div>
-                    
-                    <div className="group relative">
-                      <input 
-                        type={showPassword ? "text" : "password"}
-                        required 
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Şifreniz" 
-                        className="w-full bg-white/[0.06] border border-white/10 rounded-2xl py-5 px-6 text-white text-sm focus:outline-none focus:border-brand-terracotta/50 focus:bg-white/[0.08] transition-all placeholder:text-white/30 pr-14" 
-                      />
-                      <button 
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-5 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors"
-                      >
-                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
-                    </div>
+                    {(mode === 'login' || mode === 'register' || mode === 'forgotPassword') && (
+                      <div className="group relative">
+                        <input 
+                          type="email" 
+                          required 
+                          disabled={mode === 'forgotPassword' && successMessage !== ''}
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="E-Posta Adresiniz" 
+                          className="w-full bg-white/[0.06] border border-white/10 rounded-2xl py-5 px-6 text-white text-sm focus:outline-none focus:border-brand-terracotta/50 focus:bg-white/[0.08] transition-all placeholder:text-white/30" 
+                        />
+                      </div>
+                    )}
 
-                    {/* Registration Requirements */}
-                    {mode === 'register' && (
+                    {(mode === 'login' || mode === 'register' || mode === 'resetPassword') && (
+                      <div className="group relative">
+                        <input 
+                          type={showPassword ? "text" : "password"}
+                          required 
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder={mode === 'resetPassword' ? "Yeni Şifreniz" : "Şifreniz"} 
+                          className="w-full bg-white/[0.06] border border-white/10 rounded-2xl py-5 px-6 text-white text-sm focus:outline-none focus:border-brand-terracotta/50 focus:bg-white/[0.08] transition-all placeholder:text-white/30 pr-14" 
+                        />
+                        <button 
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-5 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors"
+                        >
+                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
+                      </div>
+                    )}
+
+                    {mode === 'verify' && (
+                      <div className="group relative">
+                        <input 
+                          type="text" 
+                          required 
+                          maxLength={6}
+                          value={verificationCode}
+                          onChange={(e) => setVerificationCode(e.target.value)}
+                          placeholder="6 Haneli Kod" 
+                          className="w-full bg-white/[0.06] border border-white/10 rounded-2xl py-5 px-6 text-white text-center text-2xl font-black tracking-[1em] focus:outline-none focus:border-brand-terracotta/50 focus:bg-white/[0.08] transition-all placeholder:text-white/10 placeholder:text-sm placeholder:tracking-widest" 
+                        />
+                      </div>
+                    )}
+
+                    {/* Requirements for password */}
+                    {(mode === 'register' || mode === 'resetPassword') && (
                       <div className="grid grid-cols-1 gap-2 px-2 py-2">
                         {requirements.map((req, i) => (
                           <div key={i} className="flex items-center gap-3">
@@ -281,8 +391,25 @@ const AuthPage = () => {
 
                     {mode === 'login' && (
                       <div className="text-right px-2">
-                        <button type="button" className="text-[10px] font-black text-white/30 hover:text-brand-terracotta transition-colors uppercase tracking-widest">
+                        <button 
+                          type="button" 
+                          onClick={() => handleModeChange('forgotPassword')}
+                          className="text-[10px] font-black text-white/30 hover:text-brand-terracotta transition-colors uppercase tracking-widest"
+                        >
                           Şifremi Unuttum
+                        </button>
+                      </div>
+                    )}
+
+                    {mode === 'verify' && (
+                      <div className="text-center px-2">
+                        <button 
+                          type="button" 
+                          disabled={loading}
+                          onClick={handleResendCode}
+                          className="text-[10px] font-black text-white/30 hover:text-brand-terracotta transition-colors uppercase tracking-widest flex items-center justify-center gap-2 mx-auto"
+                        >
+                          <RefreshCcw className={cn("w-3 h-3", loading && "animate-spin")} /> Kodu Tekrar Gönder
                         </button>
                       </div>
                     )}
@@ -292,7 +419,13 @@ const AuthPage = () => {
                       type="submit" 
                       className="w-full py-6 bg-brand-terracotta text-white rounded-[24px] font-black text-xs tracking-widest hover:shadow-[0_0_40px_rgba(211,84,0,0.4)] transition-all uppercase transform-gpu active:scale-95 mt-2 disabled:opacity-50"
                     >
-                      {loading ? 'YÜKLENİYOR...' : (mode === 'login' ? 'OTURUM AÇ' : 'KAYDI TAMAMLA')}
+                      {loading ? 'YÜKLENİYOR...' : (
+                        mode === 'login' ? 'OTURUM AÇ' : 
+                        mode === 'register' ? 'KAYDI TAMAMLA' : 
+                        mode === 'verify' ? 'HESABI DOĞRULA' : 
+                        mode === 'forgotPassword' ? 'SIFIRLAMA MAİLİ GÖNDER' : 
+                        'ŞİFREYİ GÜNCELLE'
+                      )}
                     </button>
                   </form>
                   
