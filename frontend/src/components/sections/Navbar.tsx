@@ -207,6 +207,10 @@ export default function Navbar() {
   return (
     <>
       <nav
+        style={{
+          "--brand-primary": isCakePage ? "#F5DEB3" : "#D35400",
+          "--brand-primary-dark": isCakePage ? "#E5CE93" : "#A04000",
+        } as React.CSSProperties}
         className={cn(
           "fixed top-0 left-0 right-0 z-[100] flex items-center transition-all duration-500 ease-in-out px-4 md:px-8",
           isScrolled
@@ -377,7 +381,7 @@ export default function Navbar() {
               )}
 
               <div className="flex items-center h-10 shrink-0 min-w-[120px] justify-end">
-                <Link href={user ? "/sepet" : "/auth"}>
+                <Link href={isCakePage ? "/cake/mutfagimiz" : "/salatto/mutfagimiz"}>
                   <WetPaintButton
                     isScrolled={isScrolled}
                     className="whitespace-nowrap"
@@ -493,7 +497,7 @@ export default function Navbar() {
               </nav>
 
               <div className="mt-auto pt-8 border-t border-white/5 space-y-6">
-                <Link href={user ? "/sepet" : "/auth"}>
+                <Link href={isCakePage ? "/cake/mutfagimiz" : "/salatto/mutfagimiz"}>
                   <WetPaintButton
                     isScrolled={false}
                     className="w-full justify-center"
