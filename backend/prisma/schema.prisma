@@ -246,6 +246,7 @@ enum Brand {
 enum UserRole {
   ADMIN
   USER
+  GUEST
 }
 
 enum ProductStatus {

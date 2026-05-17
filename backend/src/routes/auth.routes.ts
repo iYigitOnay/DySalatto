@@ -10,12 +10,14 @@ import {
   forgotPassword,
   resetPassword,
   changePassword,
+  guestLogin,
 } from "../controllers/auth.controller";
 import { protect } from "../middlewares/auth.middleware";
 
 const router = Router();
 
 router.post("/register", register);
+router.post("/guest-login", guestLogin);
 router.post("/verify-email", verifyEmail);
 router.post("/resend-verification", resendVerificationCode);
 router.post("/login", login);

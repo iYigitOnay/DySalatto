@@ -129,6 +129,28 @@ const AuthPage = () => {
     }
   };
 
+  const handleGuestLogin = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:3001/api/auth/guest-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: "include"
+      });
+      const data = await response.json();
+      if (response.ok) {
+        window.location.href = '/';
+      } else {
+        setError(data.message || 'Misafir girişi başarısız.');
+      }
+    } catch (err) {
+      setError('Bağlantı hatası.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleResendCode = async () => {
     if (!email) return setError('Email adresi bulunamadı.');
     setLoading(true);
@@ -197,7 +219,7 @@ const AuthPage = () => {
               >
                 {/* Left: Guest Entry */}
                 <div 
-                  onClick={() => window.location.href = '/'}
+                  onClick={handleGuestLogin}
                   className="flex-1 p-12 md:p-16 flex flex-col justify-between group cursor-pointer hover:bg-white/[0.01] transition-colors relative border-b md:border-b-0 md:border-r border-white/5"
                 >
                   <div className="relative z-10">

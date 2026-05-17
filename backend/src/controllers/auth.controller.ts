@@ -441,6 +441,60 @@ export const changePassword = async (req: any, res: Response): Promise<void> => 
   }
 };
 
+export const guestLogin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const guestId = crypto.randomUUID();
+    const guestEmail = `guest_${guestId.split("-")[0]}@dysalatto.local`;
+    const guestPassword = crypto.randomBytes(16).toString("hex");
+    const hashedGuestPassword = await bcrypt.hash(guestPassword, 10);
+
+    const guestUser = await prisma.user.create({
+      data: {
+        email: guestEmail,
+        password: hashedGuestPassword,
+        name: "Misafir Kullanıcı",
+        role: "GUEST",
+        isVerified: true // Misafir hesapları e-posta doğrulama gerektirmez
+      }
+    });
+
+    const accessToken = generateAccessToken({ id: guestUser.id, role: guestUser.role });
+    const refreshToken = generateRefreshToken({ id: guestUser.id });
+
+    await prisma.user.update({
+      where: { id: guestUser.id },
+      data: { refreshToken }
+    });
+
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 24 * 60 * 60 * 1000
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        id: guestUser.id,
+        email: guestUser.email,
+        name: guestUser.name,
+        role: guestUser.role
+      }
+    });
+  } catch (error) {
+    console.error("Guest Login Error:", error);
+    res.status(500).json({ success: false, message: "Misafir girişi sırasında hata oluştu." });
+  }
+};
+
 export const logout = async (req: Request, res: Response): Promise<void> => {
   try {
     const refreshToken = req.cookies?.refreshToken;
