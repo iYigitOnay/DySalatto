@@ -121,6 +121,52 @@ function SortableStepItem({
   );
 }
 
+// --- Sortable Item for Ingredients Categories ---
+function SortableCategoryItem({ 
+  cat, 
+  onDelete, 
+  accentColor 
+}: { 
+  cat: IngredientCategory; 
+  onDelete: (id: string) => void;
+  accentColor: string;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: cat.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 0,
+  };
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style}
+      className={cn(
+        "bg-[#0d0d0d] border border-white/5 rounded-3xl p-6 flex items-center justify-between group hover:border-white/10 transition-all",
+        isDragging && "opacity-50 scale-95 border-white/20 shadow-2xl z-[100]"
+      )}
+    >
+      <div className="flex items-center gap-4">
+        <div className="cursor-grab active:cursor-grabbing text-white/10 group-hover:text-white/40 transition-colors" {...attributes} {...listeners}>
+          <GripVertical className="w-5 h-5" />
+        </div>
+        <div className="w-10 h-10 rounded-2xl flex items-center justify-center bg-white/5 text-white/20">
+          <LayoutGrid className="w-5 h-5" />
+        </div>
+        <div>
+          <h4 className="text-white font-bold text-sm">{cat.name}</h4>
+          <p className="text-[9px] font-black uppercase tracking-widest text-white/20 mt-1">{cat.ingredients?.length || 0} MALZEME</p>
+        </div>
+      </div>
+      <button onClick={() => onDelete(cat.id)} className="p-2 text-white/10 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
+        <Trash2 className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
 export default function AdminIngredientsPage() {
   const params = useParams();
   const brand = params.brand as string;

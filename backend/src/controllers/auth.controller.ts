@@ -495,6 +495,54 @@ export const guestLogin = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
+export const convertGuestToUser = async (req: any, res: Response): Promise<void> => {
+  try {
+    const { email, password, name } = req.body;
+    const userId = req.user.id;
+
+    // Sadece misafirler dönüşebilir
+    if (req.user.role !== "GUEST") {
+      res.status(400).json({ success: false, message: "Sadece misafir hesapları üyeliğe dönüştürülebilir." });
+      return;
+    }
+
+    // Yeni email adresi zaten var mı?
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      res.status(400).json({ success: false, message: "Bu e-posta adresi zaten kullanımda." });
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        email,
+        password: hashedPassword,
+        name,
+        role: "USER",
+        isVerified: true // Ödeme sonrası güvenli geçiş
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Hesabınız başarıyla üyeliğe dönüştürüldü!",
+      data: updatedUser
+    });
+  } catch (error) {
+    console.error("Convert Guest Error:", error);
+    res.status(500).json({ success: false, message: "Hesap dönüştürülürken bir hata oluştu." });
+  }
+};
+
 export const logout = async (req: Request, res: Response): Promise<void> => {
   try {
     const refreshToken = req.cookies?.refreshToken;

@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useCartStore } from "@/store/cartStore";
 
 export type User = {
   id: string;
@@ -22,6 +23,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const clearCart = useCartStore((state) => state.clearCart);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -53,6 +55,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         credentials: "include"
       });
       setUser(null);
+      clearCart();
       router.push("/");
     } catch (error) {
       console.error("Logout failed:", error);

@@ -1,8 +1,8 @@
 import { Router } from "express";
 import {
+  register,
   login,
   logout,
-  register,
   me,
   updateProfile,
   verifyEmail,
@@ -11,6 +11,7 @@ import {
   resetPassword,
   changePassword,
   guestLogin,
+  convertGuestToUser,
 } from "../controllers/auth.controller";
 import { protect } from "../middlewares/auth.middleware";
 
@@ -18,6 +19,7 @@ const router = Router();
 
 router.post("/register", register);
 router.post("/guest-login", guestLogin);
+router.post("/convert-guest", protect, convertGuestToUser);
 router.post("/verify-email", verifyEmail);
 router.post("/resend-verification", resendVerificationCode);
 router.post("/login", login);
@@ -29,3 +31,4 @@ router.get("/me", protect, me);
 router.put("/update-profile", protect, updateProfile);
 
 export default router;
+

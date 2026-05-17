@@ -18,6 +18,7 @@ const statusMap = {
 };
 
 import { Truck, AlertCircle } from "lucide-react";
+import ConvertToMember from "@/components/sections/ConvertToMember";
 
 export default function OrderDetailPage() {
   const { id } = useParams();
@@ -50,6 +51,9 @@ export default function OrderDetailPage() {
 
   return (
     <div className="space-y-12">
+      {/* Convert to Member Banner for Guests */}
+      <ConvertToMember />
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
